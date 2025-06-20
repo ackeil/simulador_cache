@@ -26,7 +26,6 @@ typedef struct linha_cache
 
 typedef struct conjunto_cache
 {
-    int LRU;
     int dirty_bit;
     int index_conjunto;
     str_linha_cache** addr_linhas_cache;
@@ -39,6 +38,9 @@ typedef struct formato_endereco
     int conjunto;   //  log2 quant conjuntos    |   log2 ( dados_entrada.numero_linhas / dados_entrada.associatividade) 
     int palavra;    //  log2 tamanho conjuntos  |   log2 dados_entrada.associatividade
 }str_formato_endereco;
+
+// Armazena durante o loop qual foi o conjunto menos utilizado
+int* array_lru;
 
 FILE* arquivo_entrada, arquivo_saida;
 
