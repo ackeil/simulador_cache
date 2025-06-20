@@ -1,0 +1,29 @@
+=== RELATÓRIO DE SIMULAÇÃO DE CACHE ===
+
+PARÂMETROS DE ENTRADA:
+Política de escrita: Write-through
+Tamanho da linha: 128 bytes
+Número de linhas: 64
+Associatividade: 4 linhas por conjunto
+Tempo de hit: 5 ns
+Política de substituição: LRU
+Tempo de leitura MP: 70 ns
+Tempo de escrita MP: 70 ns
+Arquivo de entrada: oficial.cache
+
+ESTATÍSTICAS DOS ACESSOS:
+Total de acessos: 51200
+Total de leituras: 45056
+Total de escritas: 6144
+
+ACESSOS À MEMÓRIA PRINCIPAL:
+Leituras da MP: 3621
+Escritas na MP: 6144
+
+TAXAS DE ACERTO (HIT RATE):
+Hit rate leitura: 93.1064% (41950/45056)
+Hit rate escrita: 91.6178% (5629/6144)
+Hit rate global: 92.9277% (47579/51200)
+
+TEMPO MÉDIO DE ACESSO:
+Tempo médio de acesso: 18.3506 ns
