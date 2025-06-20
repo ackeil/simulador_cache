@@ -6,7 +6,7 @@
 #define INPUT_INVALIDO      1
 #define ARQUIVO_INVALIDO    2
 
-struct dados_entrada
+typedef struct str_dados_entrada
 {
     int politica_escrita;
     int tamanho_linha;
@@ -16,8 +16,20 @@ struct dados_entrada
     int politica_subs;
     int tempo_mp_leitura;
     int tempo_mp_escrita;
-    char caminho_arquivo_inp[65];
-}dados_entrada;
+    int arquivo_input;
+}str_dados_entrada;
+
+str_dados_entrada dados_entrada;
+
+struct dados_saida
+{
+    str_dados_entrada* ptr_dados_entrada;   // Todos os parâmetros de entrada: assim é possível verificar os parâmetros utilizados;
+    int quant_enderecos;                    // Total de endereços no arquivo de entrada: especificar o número de endereços de escrita, leitura e a soma dos dois;
+    int acessos_mp;                         // Total de escritas e leituras da memória principal;
+    int hit_rate;                           // Taxa de acerto (hit rate): especificar esta taxa por leitura, escrita e global (colocar ao lado a quantidade);
+    int tempo_medio_cache;                  // Tempo médio de acesso da cache (em ns): utilizar a fórmula vista em aula;
+    
+}dados_saida;
 
 typedef struct linha_cache
 {
@@ -168,9 +180,9 @@ void trata_dados_entrada()
     printf("|                                                                       |\n");
     printf("-------------------------------------------------------------------------\n");
 
-    printf("Insira o nome do arquvio que contem os dados \n");
-    printf("(Somente caracteres ASCII, Maximo de 128 caracteres) \n");
-    scanf("%s", dados_entrada.caminho_arquivo_inp);
+    printf("Insira qual o arquivo de dados desejado: \n");
+    printf("(0 - Teste, 1 - Oficial) \n");
+    scanf("%i", &dados_entrada.arquivo_input);
 }
 
 int main()
@@ -190,16 +202,18 @@ int main()
 
     trata_dados_entrada();
 
-    arquivo_entrada = fopen(dados_entrada.caminho_arquivo_inp,"r");
-
-    printf("Caminho do arquivo: %s\n", dados_entrada.caminho_arquivo_inp);
+    if(dados_entrada.arquivo_input == 1)
+    {
+        arquivo_entrada = fopen("C:\\oficial.cache","r");
+    }
+    else arquivo_entrada = fopen("C:\\teste.cache","r");
 
     if(arquivo_entrada == NULL)
     {
         trata_erro(ARQUIVO_INVALIDO);
     }
 
-    printf("Abriu arquivo com sucesso! Lendo dados...");
+    printf("Abriu arquivo com sucesso! Lendo dados...\n");
 
     // Le todos os dados do arquivo de entrada e printa
     while(fgets(dados_lidos, 10, arquivo_entrada) != NULL)
@@ -209,10 +223,25 @@ int main()
     return 0;
 
     // Ler os dados do arquivo e alocar a memoria para usar
+    
+    /*
+        Estrutura do Loop
+            Verifica dado de entrada
+            Busca Conjunto do endereço
+            Verifica se conjunto na memoria Cache
+            Sim? 
+                Soma tempo de leitura da memoria cache
+                Atualiza LRU
+                Sai
+            Nao?
+                Verifica se cache ainda com espaço
+                Tira LRU 
+                Coloca conjunto requisitado no lugar
+                Soma tempo de leitura M.P
+                Sai
+    */
+    //
 
-    // Loopar pelos conjuntos e bater com os endereços
-    // Se nao estiver na cache, "traz" e soma tempo M.P.
-    // Se estiver soma tempo Cache
 
     // No fim do loop gera arquivo de saida
     /*
