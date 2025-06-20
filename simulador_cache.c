@@ -51,6 +51,7 @@ typedef struct formato_endereco
     int palavra;  //  log2 tamanho conjuntos  |   log2 dados_entrada.associatividade
 } str_formato_endereco;
 
+// comentarios do gabriel = gostei da ideia de usar uma struct para guardar as estatisticas pro isso aderi, caso quiser mudar avisa
 struct estatisticas
 {
     int total_acessos;
@@ -68,6 +69,8 @@ struct estatisticas
 // Armazena durante o loop qual foi o conjunto menos utilizado
 int *array_lru;
 int contador_lru;
+
+char caminho_saida[100];
 
 FILE *arquivo_entrada, arquivo_saida;
 
@@ -238,6 +241,47 @@ void trata_dados_entrada()
     printf("Insira qual o arquivo de dados desejado: \n");
     printf("(0 - Teste, 1 - Oficial) \n");
     scanf("%i", &dados_entrada.arquivo_input);
+
+    printf("Insira o caminho do arquivo de saida \n");
+    scanf("%s", caminho_saida);
+}
+
+void saida_arquivo()
+{
+    FILE *arquivo_saida = fopen(caminho_saida, "w");
+    if (arquivo_saida == NULL)
+    {
+        printf("Erro ao criar arquivo de saída!\n");
+        return;
+    }
+    fprintf(arquivo_saida, "SIMULAÇÃO DE CACHE\n\n");
+
+    // comentarios do gabriel = colocar os parametros de entrada???
+
+    fprintf(arquivo_saida, "ACESSOS:\n");
+    fprintf(arquivo_saida, "Total de acessos: %d\n", stats.total_acessos);
+    fprintf(arquivo_saida, "Total de leituras: %d\n", stats.total_leituras);
+    fprintf(arquivo_saida, "Total de escritas: %d\n\n", stats.total_escritas);
+
+    fprintf(arquivo_saida, "HITS:\n");
+    fprintf(arquivo_saida, "Hits de leitura: %d\n", stats.hits_leitura);
+    fprintf(arquivo_saida, "Hits de escrita: %d\n", stats.hits_escrita);
+    fprintf(arquivo_saida, "Misses de leitura: %d\n", stats.misses_leitura);
+    fprintf(arquivo_saida, "Misses de escrita: %d\n\n", stats.misses_escrita);
+
+    fprintf(arquivo_saida, "MEMÓRIA PRINCIPAL:\n");
+    fprintf(arquivo_saida, "Acessos à memória principal (leitura): %d\n", stats.acessos_mp_leitura);
+    fprintf(arquivo_saida, "Acessos à memória principal (escrita): %d\n", stats.acessos_mp_escrita);
+    fprintf(arquivo_saida, "Tempo total de acesso: %.4f ns\n", stats.tempo_total_acesso);
+    fprintf(arquivo_saida, "Tempo médio de acesso da cache: %.4f ns\n", stats.tempo_total_acesso / stats.total_acessos);
+    fprintf(arquivo_saida, "Taxa de acerto (hit rate): %.4f%%\n", (double)(stats.hits_leitura + stats.hits_escrita) / stats.total_acessos * 100);
+
+    // comentarios do gabriel = fazer calculo de porcentagem de acertos e tempo medio???
+
+    fclose(arquivo_saida);
+    printf("Arquivo de saída gerado com sucesso!\n");
+
+    // comentarios do gabriel = ta agardavel assim?
 }
 
 int main()
@@ -258,6 +302,7 @@ int main()
     trata_dados_entrada();
     begin_cache();
 
+    //  comentarios do gabriel = Pedir caminho para os arquivos de entrada?? pq fiquei com preguica de mudar o arquivo pra esse caminho ai
     if (dados_entrada.arquivo_input == 1)
     {
         arquivo_entrada = fopen("C:\\oficial.cache", "r");
@@ -277,6 +322,53 @@ int main()
     {
         printf("%i: %s\n", i++, dados_lidos);
     }
+    /*
+    versao do copiloto
+    comentarios do gabriel = achei genial o sizeof(linha) o resto eh bem normal, creio que podemos usar desse jeito
+        while (fgets(linha, sizeof(linha), arquivo_entrada) != NULL)
+        {
+            if (sscanf(linha, "%x %c", &endereco, &operacao) == 2)
+            {
+                stats.total_acessos++;
+
+                if (operacao == 'R')
+                {
+                    stats.total_leituras++;
+                }
+                else if (operacao == 'W')
+                {
+                    stats.total_escritas++;
+                }
+
+                simular_acesso(endereco, operacao);  comentarios do gabriel = essa eh a funcao principal que vai fazer a simulacao, nao copiei a do coppiloto pra nos fazer !!!
+            }
+        }
+
+        fclose(arquivo_entrada);
+
+
+   comentarios do gabriel = copiloto disse para fazer essa funcao depois de passar na cache para fazer o write-back final, preocede??
+                    // Função para finalizar cache (write-back final)
+                    void finalizar_cache()
+                    {
+                        if (dados_entrada.politica_escrita == 1)
+                        { // Write-back
+                            for (int i = 0; i < numero_conjuntos; i++)
+                            {
+                                for (int j = 0; j < dados_entrada.associatividade; j++)
+                                {
+                                    if (cache[i].addr_linhas_cache[j]->valido &&
+                                        cache[i].addr_linhas_cache[j]->dirty_bit)
+                                    {
+                                        stats.acessos_mp_escrita++;
+                                        stats.tempo_total_acesso += dados_entrada.tempo_mp_escrita;
+                                    }
+                                }
+                            }
+                        }
+                    }
+    */
+    saida_arquivo();
     return 0;
 
     // Ler os dados do arquivo e alocar a memoria para usar
