@@ -21,13 +21,13 @@ struct dados_entrada
 
 typedef struct linha_cache
 {
-    int LRU;
-    int dirty_bit;
     int endereco;
 }str_linha_cache;
 
 typedef struct conjunto_cache
 {
+    int LRU;
+    int dirty_bit;
     int index_conjunto;
     str_linha_cache** addr_linhas_cache;
 }str_conjunto_cache;
