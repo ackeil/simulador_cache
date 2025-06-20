@@ -16,7 +16,7 @@ struct dados_entrada
     int politica_subs;
     int tempo_mp_leitura;
     int tempo_mp_escrita;
-    char caminho_arquivo_inp[129];
+    char caminho_arquivo_inp[65];
 }dados_entrada;
 
 typedef struct linha_cache
@@ -25,6 +25,12 @@ typedef struct linha_cache
     int dirty_bit;
     int endereco;
 }str_linha_cache;
+
+typedef struct conjunto_cache
+{
+    int index_conjunto;
+    str_linha_cache** addr_linhas_cache;
+}str_conjunto_cache;
 
 FILE* arquivo_entrada, arquivo_saida;
 
