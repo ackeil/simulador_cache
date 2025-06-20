@@ -1,10 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define TAMANHO_INT         65535
+#define TAMANHO_INT 65535
 
-#define INPUT_INVALIDO      1
-#define ARQUIVO_INVALIDO    2
+#define INPUT_INVALIDO 1
+#define ARQUIVO_INVALIDO 2
 
 typedef struct str_dados_entrada
 {
@@ -17,59 +17,74 @@ typedef struct str_dados_entrada
     int tempo_mp_leitura;
     int tempo_mp_escrita;
     int arquivo_input;
-}str_dados_entrada;
+} str_dados_entrada;
 
 str_dados_entrada dados_entrada;
 
 struct dados_saida
 {
-    str_dados_entrada* ptr_dados_entrada;   // Todos os parâmetros de entrada: assim é possível verificar os parâmetros utilizados;
-    int quant_enderecos;                    // Total de endereços no arquivo de entrada: especificar o número de endereços de escrita, leitura e a soma dos dois;
-    int acessos_mp;                         // Total de escritas e leituras da memória principal;
-    int hit_rate;                           // Taxa de acerto (hit rate): especificar esta taxa por leitura, escrita e global (colocar ao lado a quantidade);
-    int tempo_medio_cache;                  // Tempo médio de acesso da cache (em ns): utilizar a fórmula vista em aula;
-    
-}dados_saida;
+    str_dados_entrada *ptr_dados_entrada; // Todos os parâmetros de entrada: assim é possível verificar os parâmetros utilizados;
+    int quant_enderecos;                  // Total de endereços no arquivo de entrada: especificar o número de endereços de escrita, leitura e a soma dos dois;
+    int acessos_mp;                       // Total de escritas e leituras da memória principal;
+    int hit_rate;                         // Taxa de acerto (hit rate): especificar esta taxa por leitura, escrita e global (colocar ao lado a quantidade);
+    int tempo_medio_cache;                // Tempo médio de acesso da cache (em ns): utilizar a fórmula vista em aula;
+
+} dados_saida;
 
 typedef struct linha_cache
 {
     int endereco;
-}str_linha_cache;
+} str_linha_cache;
 
 typedef struct conjunto_cache
 {
     int dirty_bit;
     int index_conjunto;
-    str_linha_cache** addr_linhas_cache;
-}str_conjunto_cache;
+    str_linha_cache **addr_linhas_cache;
+} str_conjunto_cache;
 
 typedef struct formato_endereco
-{       
-    int tamanho;    //  log2 tamanho M.P        |   32bits
-    int rotulo;     //  restante dos bits       |   32 - ( conjunto + palavra)
-    int conjunto;   //  log2 quant conjuntos    |   log2 ( dados_entrada.numero_linhas / dados_entrada.associatividade) 
-    int palavra;    //  log2 tamanho conjuntos  |   log2 dados_entrada.associatividade
-}str_formato_endereco;
+{
+    int tamanho;  //  log2 tamanho M.P        |   32bits
+    int rotulo;   //  restante dos bits       |   32 - ( conjunto + palavra)
+    int conjunto; //  log2 quant conjuntos    |   log2 ( dados_entrada.numero_linhas / dados_entrada.associatividade)
+    int palavra;  //  log2 tamanho conjuntos  |   log2 dados_entrada.associatividade
+} str_formato_endereco;
+
+struct estatisticas
+{
+    int total_acessos;
+    int total_leituras;
+    int total_escritas;
+    int hits_leitura;
+    int hits_escrita;
+    int misses_leitura;
+    int misses_escrita;
+    int acessos_mp_leitura;
+    int acessos_mp_escrita;
+    double tempo_total_acesso;
+} stats;
 
 // Armazena durante o loop qual foi o conjunto menos utilizado
-int* array_lru;
+int *array_lru;
+int contador_lru;
 
-FILE* arquivo_entrada, arquivo_saida;
+FILE *arquivo_entrada, arquivo_saida;
 
 void trata_erro(int erro)
 {
     printf("ERRO!");
 
-    switch(erro)
+    switch (erro)
     {
-        case 1:
-            printf("Valor inserido esta fora dos limites! \n");
+    case 1:
+        printf("Valor inserido esta fora dos limites! \n");
         break;
-        case 2:
-            printf("O Arquivo eh invalido! \n");
+    case 2:
+        printf("O Arquivo eh invalido! \n");
         break;
-        default:
-            printf("Erro Fatal! \n");
+    default:
+        printf("Erro Fatal! \n");
     }
 
     printf("Finalizando testes... \n");
@@ -83,6 +98,46 @@ void trata_erro(int erro)
     Joga o dado para a struct de entrada
     Verifica se o dado é valido
 */
+void begin_cache()
+{
+    /*
+    versao do copiloto
+
+    numero_conjuntos = dados_entrada.numero_linhas / dados_entrada.associatividade;
+    formato_end.bits_offset = log2_int(dados_entrada.tamanho_linha);
+    formato_end.bits_indice = log2_int(numero_conjuntos);
+    formato_end.bits_tag = 32 - formato_end.bits_offset - formato_end.bits_indice;
+
+    cache = (str_conjunto_cache *)malloc(numero_conjuntos * sizeof(str_conjunto_cache));
+
+    for (int i = 0; i < numero_conjuntos; i++)
+    {
+        cache[i].index_conjunto = i;
+        cache[i].addr_linhas_cache = (str_linha_cache **)malloc(dados_entrada.associatividade * sizeof(str_linha_cache *));
+
+        for (int j = 0; j < dados_entrada.associatividade; j++)
+        {
+            cache[i].addr_linhas_cache[j] = (str_linha_cache *)malloc(sizeof(str_linha_cache));
+            cache[i].addr_linhas_cache[j]->LRU = 0;
+            cache[i].addr_linhas_cache[j]->dirty_bit = 0;
+            cache[i].addr_linhas_cache[j]->tag = 0;
+            cache[i].addr_linhas_cache[j]->valido = 0;
+        }
+    }
+*/
+    // Inicializar estatísticas
+    stats.total_acessos = 0;
+    stats.total_leituras = 0;
+    stats.total_escritas = 0;
+    stats.hits_leitura = 0;
+    stats.hits_escrita = 0;
+    stats.misses_leitura = 0;
+    stats.misses_escrita = 0;
+    stats.acessos_mp_leitura = 0;
+    stats.acessos_mp_escrita = 0;
+    stats.tempo_total_acesso = 0.0;
+    contador_lru = 0;
+}
 void trata_dados_entrada()
 {
     printf("--------------------------------------------------------------------------------------------------------------------\n");
@@ -101,7 +156,7 @@ void trata_dados_entrada()
     printf("Insira a politica de escrita \n");
     printf("(0 - Write Thorugh, 1 - Write-Back) \n");
     scanf("%i", &dados_entrada.politica_escrita);
-    if(dados_entrada.politica_escrita > 1 || dados_entrada.politica_escrita < 0)
+    if (dados_entrada.politica_escrita > 1 || dados_entrada.politica_escrita < 0)
     {
         trata_erro(INPUT_INVALIDO);
     }
@@ -110,7 +165,7 @@ void trata_dados_entrada()
     printf("Insira o tamanho da linha \n");
     printf("(Deve ser potencia de 2) \n");
     scanf("%i", &dados_entrada.tamanho_linha);
-    if(dados_entrada.tamanho_linha % 2 != 0)
+    if (dados_entrada.tamanho_linha % 2 != 0)
     {
         trata_erro(INPUT_INVALIDO);
     }
@@ -119,7 +174,7 @@ void trata_dados_entrada()
     printf("Insira o numero de linhas \n");
     printf("(Deve ser potencia de 2) \n");
     scanf("%i", &dados_entrada.numero_linhas);
-    if(dados_entrada.numero_linhas % 2 != 0)
+    if (dados_entrada.numero_linhas % 2 != 0)
     {
         trata_erro(INPUT_INVALIDO);
     }
@@ -128,7 +183,7 @@ void trata_dados_entrada()
     printf("Insira o numero de linhas por conjunto \n");
     printf("(Deve ser maior que 1 e menor que o total de linhas) \n");
     scanf("%i", &dados_entrada.associatividade);
-    if(dados_entrada.associatividade < 1 || dados_entrada.associatividade > dados_entrada.numero_linhas)
+    if (dados_entrada.associatividade < 1 || dados_entrada.associatividade > dados_entrada.numero_linhas)
     {
         trata_erro(INPUT_INVALIDO);
     }
@@ -137,7 +192,7 @@ void trata_dados_entrada()
     printf("Insira o tempo de acesso da memoria \n");
     printf("(Tempo em Nanossegundos) \n");
     scanf("%i", &dados_entrada.hit_time);
-    if(dados_entrada.hit_time <= 0 || dados_entrada.hit_time > TAMANHO_INT)
+    if (dados_entrada.hit_time <= 0 || dados_entrada.hit_time > TAMANHO_INT)
     {
         trata_erro(INPUT_INVALIDO);
     }
@@ -146,7 +201,7 @@ void trata_dados_entrada()
     printf("Insira a politica de substituicao \n");
     printf("(0 - LRU, 1 - Aleatoria) \n");
     scanf("%i", &dados_entrada.politica_subs);
-    if(dados_entrada.politica_subs > 1 || dados_entrada.politica_subs < 0)
+    if (dados_entrada.politica_subs > 1 || dados_entrada.politica_subs < 0)
     {
         trata_erro(INPUT_INVALIDO);
     }
@@ -160,7 +215,7 @@ void trata_dados_entrada()
     printf("Insira o tempo de leitura da Memoria Principal \n");
     printf("(Tempo em Nanossegundos) \n");
     scanf("%i", &dados_entrada.tempo_mp_leitura);
-    if(dados_entrada.tempo_mp_leitura <= 0 || dados_entrada.tempo_mp_leitura > TAMANHO_INT)
+    if (dados_entrada.tempo_mp_leitura <= 0 || dados_entrada.tempo_mp_leitura > TAMANHO_INT)
     {
         trata_erro(INPUT_INVALIDO);
     }
@@ -169,7 +224,7 @@ void trata_dados_entrada()
     printf("Insira o tempo de escrita da Memoria Principal \n");
     printf("(Tempo em Nanossegundos) \n");
     scanf("%i", &dados_entrada.tempo_mp_leitura);
-    if(dados_entrada.tempo_mp_leitura <= 0 || dados_entrada.tempo_mp_leitura > TAMANHO_INT)
+    if (dados_entrada.tempo_mp_leitura <= 0 || dados_entrada.tempo_mp_leitura > TAMANHO_INT)
     {
         trata_erro(INPUT_INVALIDO);
     }
@@ -186,9 +241,9 @@ void trata_dados_entrada()
 }
 
 int main()
-{                      
+{
     char dados_lidos[11];
-    int i = 0;                                                                          
+    int i = 0;
 
     printf("--------------------------------------------------------------------------------------------------------------------\n");
     printf("|                                                                                                                  |\n");
@@ -201,14 +256,16 @@ int main()
     printf("--------------------------------------------------------------------------------------------------------------------\n");
 
     trata_dados_entrada();
+    begin_cache();
 
-    if(dados_entrada.arquivo_input == 1)
+    if (dados_entrada.arquivo_input == 1)
     {
-        arquivo_entrada = fopen("C:\\oficial.cache","r");
+        arquivo_entrada = fopen("C:\\oficial.cache", "r");
     }
-    else arquivo_entrada = fopen("C:\\teste.cache","r");
+    else
+        arquivo_entrada = fopen("C:\\teste.cache", "r");
 
-    if(arquivo_entrada == NULL)
+    if (arquivo_entrada == NULL)
     {
         trata_erro(ARQUIVO_INVALIDO);
     }
@@ -216,32 +273,31 @@ int main()
     printf("Abriu arquivo com sucesso! Lendo dados...\n");
 
     // Le todos os dados do arquivo de entrada e printa
-    while(fgets(dados_lidos, 10, arquivo_entrada) != NULL)
-    { 
+    while (fgets(dados_lidos, 10, arquivo_entrada) != NULL)
+    {
         printf("%i: %s\n", i++, dados_lidos);
     }
     return 0;
 
     // Ler os dados do arquivo e alocar a memoria para usar
-    
+
     /*
         Estrutura do Loop
             Verifica dado de entrada
             Busca Conjunto do endereço
             Verifica se conjunto na memoria Cache
-            Sim? 
+            Sim?
                 Soma tempo de leitura da memoria cache
                 Atualiza LRU
                 Sai
             Nao?
                 Verifica se cache ainda com espaço
-                Tira LRU 
+                Tira LRU
                 Coloca conjunto requisitado no lugar
                 Soma tempo de leitura M.P
                 Sai
     */
     //
-
 
     // No fim do loop gera arquivo de saida
     /*
