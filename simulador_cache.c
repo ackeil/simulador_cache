@@ -32,6 +32,14 @@ typedef struct conjunto_cache
     str_linha_cache** addr_linhas_cache;
 }str_conjunto_cache;
 
+typedef struct formato_endereco
+{       
+    int tamanho;    //  log2 tamanho M.P        |   32bits
+    int rotulo;     //  restante dos bits       |   32 - ( conjunto + palavra)
+    int conjunto;   //  log2 quant conjuntos    |   log2 ( dados_entrada.numero_linhas / dados_entrada.associatividade) 
+    int palavra;    //  log2 tamanho conjuntos  |   log2 dados_entrada.associatividade
+}str_formato_endereco;
+
 FILE* arquivo_entrada, arquivo_saida;
 
 void trata_erro(int erro)
@@ -164,7 +172,9 @@ void trata_dados_entrada()
 }
 
 int main()
-{                                                                                                
+{                      
+    char dados_lidos[11];
+    int i = 0;                                                                          
 
     printf("--------------------------------------------------------------------------------------------------------------------\n");
     printf("|                                                                                                                  |\n");
@@ -180,13 +190,35 @@ int main()
 
     arquivo_entrada = fopen(dados_entrada.caminho_arquivo_inp,"r");
 
-    printf("Caminho do arquivo: ");
-    printf(dados_entrada.caminho_arquivo_inp);
+    printf("Caminho do arquivo: %s\n", dados_entrada.caminho_arquivo_inp);
 
     if(arquivo_entrada == NULL)
     {
         trata_erro(ARQUIVO_INVALIDO);
     }
 
+    printf("Abriu arquivo com sucesso! Lendo dados...");
+
+    // Le todos os dados do arquivo de entrada e printa
+    while(fgets(dados_lidos, 10, arquivo_entrada) != NULL)
+    { 
+        printf("%i: %s\n", i++, dados_lidos);
+    }
     return 0;
+
+    // Ler os dados do arquivo e alocar a memoria para usar
+
+    // Loopar pelos conjuntos e bater com os endereços
+    // Se nao estiver na cache, "traz" e soma tempo M.P.
+    // Se estiver soma tempo Cache
+
+    // No fim do loop gera arquivo de saida
+    /*
+        Todos os parâmetros de entrada: assim é possível verificar os parâmetros utilizados;
+        Total de endereços no arquivo de entrada: especificar o número de endereços de escrita, leitura e a soma dos dois;
+        Total de escritas e leituras da memória principal;
+        Taxa de acerto (hit rate): especificar esta taxa por leitura, escrita e global (colocar ao lado a quantidade);
+        Tempo médio de acesso da cache (em ns): utilizar a fórmula vista em aula;
+        Todas as saídas que forem números reais devem ter 4 casas decimais. Ao término da simulação, deve-se atualizar a memória principal com as caches alteradas (caso necessário).
+    */
 }

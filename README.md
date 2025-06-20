@@ -17,14 +17,15 @@ Tempo de acesso quando encontra (hit time): em nanossegundos;
 Política de Substituição: LRU (Least Recently Used) ou Aleatória;
 Memória Principal
 Tempos de leitura/escrita: em nanossegundos.
-O programa deve produzir um arquivo texto, cujo nome será requisitado na entrada dos parâmetros, com diversas informações sobre a simulação. As informações são:
 
-Todos os parâmetros de entrada: assim é possível verificar os parâmetros utilizados;
-Total de endereços no arquivo de entrada: especificar o número de endereços de escrita, leitura e a soma dos dois;
-Total de escritas e leituras da memória principal;
-Taxa de acerto (hit rate): especificar esta taxa por leitura, escrita e global (colocar ao lado a quantidade);
-Tempo médio de acesso da cache (em ns): utilizar a fórmula vista em aula;
-Todas as saídas que forem números reais devem ter 4 casas decimais. Ao término da simulação, deve-se atualizar a memória principal com as caches alteradas (caso necessário).
+    O programa deve produzir um arquivo texto, cujo nome será requisitado na entrada dos parâmetros, com diversas informações sobre a simulação. As informações são:
+
+    Todos os parâmetros de entrada: assim é possível verificar os parâmetros utilizados;
+    Total de endereços no arquivo de entrada: especificar o número de endereços de escrita, leitura e a soma dos dois;
+    Total de escritas e leituras da memória principal;
+    Taxa de acerto (hit rate): especificar esta taxa por leitura, escrita e global (colocar ao lado a quantidade);
+    Tempo médio de acesso da cache (em ns): utilizar a fórmula vista em aula;
+    Todas as saídas que forem números reais devem ter 4 casas decimais. Ao término da simulação, deve-se atualizar a memória principal com as caches alteradas (caso necessário).
 
 Formato do Arquivo
 Dois arquivos serão fornecidos para realizar as simulações. Um arquivo menor para testes chamado 
