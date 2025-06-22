@@ -54,10 +54,8 @@ struct estatisticas
     int total_acessos;
     int total_leituras;
     int total_escritas;
-    int hits_leitura;
-    int hits_escrita;
-    int misses_leitura;
-    int misses_escrita;
+    int hits;
+    int misses;
     int acessos_mp_leitura;
     int acessos_mp_escrita;
     double tempo_total_acesso;
@@ -395,17 +393,28 @@ int main()
       printf("Endereco: %x, Operacao: %c\n", endereco, operacao);
       
       stats.total_acessos++;
-
-      if (operacao == 'R')
+      // Passa por todos os conjuntos
+      for(i = 0; i < informacoes_cache.numero_conjuntos; i++)
       {
-          stats.total_leituras++;
-      }
+        if(endereco & conjuntos_cache[i].mascara_conjunto)
+        {
+          stats.hits++;
+          stats.tempo_total_acesso += dados_entrada.hit_time;
 
-      if (operacao == 'W')
-      {
-          stats.total_escritas++;
+          if(operacao == 'w')
+          {
+            // Adcionar logica para write-through
+          }
+        }
+        else
+        {
+          stats.misses++;
+
+          // adcionar logica para puxar os dados da memoria e popular cache
+        }
       }
     }
+  
 
     fclose(arquivo_entrada);
   /*
