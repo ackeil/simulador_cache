@@ -30,6 +30,7 @@ typedef struct conjunto_cache
 {
     int dirty_bit;
     int index_conjunto;
+    int populado;
     str_linha_cache **addr_linhas_cache;
 } str_conjunto_cache;
 
@@ -38,6 +39,7 @@ typedef struct informacoes_cache
 {
   int numero_conjuntos; // numero_linhas / associatividade
   int mascara_conjuntos;
+  int index_ocupacao_cache;
 
   struct
   {
@@ -54,8 +56,10 @@ struct estatisticas
     int total_acessos;
     int total_leituras;
     int total_escritas;
-    int hits;
-    int misses;
+    int hits_leitura;
+    int hits_escrita;
+    int misses_leitura;
+    int misses_escrita;
     int acessos_mp_leitura;
     int acessos_mp_escrita;
     double tempo_total_acesso;
@@ -118,16 +122,23 @@ void inicializa_cache()
     // Deixa pronta a mascara para os conjuntos
     informacoes_cache.mascara_conjuntos   = (int)(pow(2, informacoes_cache.endereco.conjunto) - 1) << informacoes_cache.endereco.palavra;
 
+    printf("Rotulo: %d\n", informacoes_cache.endereco.rotulo);
+    printf("Conjunto: %d\n", informacoes_cache.endereco.conjunto);
+    printf("Palavra: %d\n", informacoes_cache.endereco.palavra);
+    printf("Mascara: %x\n", informacoes_cache.mascara_conjuntos);
+
     // Aloca a quantidade de conjuntos da cache
     conjuntos_cache = (str_conjunto_cache*) malloc (informacoes_cache.numero_conjuntos * (sizeof(str_conjunto_cache)));
 
     // Passa por cada conjunto e aloca as linhas de cada um deles
     for(i = 0; i < informacoes_cache.numero_conjuntos; i++)
     {
+      conjuntos_cache[i].populado          = 0;
       conjuntos_cache[i].index_conjunto    = 0;
       conjuntos_cache[i].dirty_bit         = 0;
       conjuntos_cache[i].addr_linhas_cache = (str_linha_cache **) malloc (dados_entrada.associatividade * sizeof(str_linha_cache*));
 
+      // comentario do andre = A gente precisa saber qualquer coisa sobre as linhas? teoricamente vai estar tudo no conjunto, acho que facilita na implementacao
       for(j = 0; j < dados_entrada.associatividade; j++)
       {
         conjuntos_cache[i].addr_linhas_cache[j] = (str_linha_cache *) malloc (dados_entrada.associatividade * sizeof(str_linha_cache));
@@ -135,6 +146,11 @@ void inicializa_cache()
         conjuntos_cache[i].addr_linhas_cache[j]->endereco = 0;
       }
     }
+
+    printf("Inicializou a cache!\n");
+    printf("Numero de Linhas: %d\n", dados_entrada.numero_linhas);
+    printf("Linhas por conjunto: %d\n", dados_entrada.associatividade);
+    printf("Numero de conjuntos: %d\n", informacoes_cache.numero_conjuntos);
 
     // Inicializar estatísticas
     stats.total_acessos = 0;
@@ -153,6 +169,38 @@ void inicializa_cache()
     stats.tempo_medio_cache = 0;
     contador_lru = 0;
 }
+
+void busca_conjunto_mp(int endereco)
+{
+  int conjunto_atualizado;
+
+  printf("Buscando conjunto na memoria principal!\n");
+
+  printf("Index Ocupacao Cache: %d\n", informacoes_cache.index_ocupacao_cache);
+
+  // Se a cache esta cheia, busca qual conjunto sera ocupado
+  if(informacoes_cache.index_ocupacao_cache > informacoes_cache.numero_conjuntos)
+  {
+    // Busca o conjunto que vai ser esvaziado de forma aleatoria
+    if(dados_entrada.politica_subs == 1)
+    {
+      conjunto_atualizado = rand() % informacoes_cache.numero_conjuntos;
+    }
+    if(dados_entrada.politica_subs == 0)
+    {
+      // Implementar logica para LRU
+    }
+  }
+  else conjunto_atualizado = informacoes_cache.index_ocupacao_cache++;
+
+  conjuntos_cache[conjunto_atualizado].index_conjunto = (endereco & informacoes_cache.mascara_conjuntos);
+  conjuntos_cache[conjunto_atualizado].populado = 1;
+
+  printf("Endereco: %x\n", endereco);
+  printf("Mascara: %x\n", informacoes_cache.mascara_conjuntos);
+  printf("Index Conjunto: %x\n", conjuntos_cache[conjunto_atualizado].index_conjunto);
+}
+
 void trata_dados_entrada()
 {
     printf("--------------------------------------------------------------------------------------------------------------------\n");
@@ -367,26 +415,6 @@ int main()
     printf("Abriu arquivo com sucesso! Lendo dados...\n");
 
     // Le todos os dados do arquivo de entrada e printa
-    // comentarios do andre = prototipo de uma logica que acho que podemos usar
-      /*
-          // Passa por todos os conjuntos
-          for(i = 0; i < informacoes_cache.numero_conjuntos; i++)
-          {
-            if(endereco_lido & conjuntos_cache[i].mascara_conjunto)
-            {
-              quant_hits++;
-              tempo_memoria += informacoes_cache.hit_time;
-            }
-            else
-            {
-              // Implementar logica do LRU e substituir conjunto na Cache
-              busca_conjunto_mp();
-              quant_miss++;
-              tempo_memoria += informacoes_cache.tempo_mp;
-            }
-          }
-      
-      */
     while (fgets(dados_lidos, 11, arquivo_entrada) != NULL)
     {
       sscanf(dados_lidos, "%x %c", &endereco, &operacao);
@@ -396,19 +424,47 @@ int main()
       // Passa por todos os conjuntos
       for(i = 0; i < informacoes_cache.numero_conjuntos; i++)
       {
-        if(endereco & conjuntos_cache[i].mascara_conjunto)
+        // comentarios do andre = Precisa ver pq a mascara nao esta 100% ainda
+        // ou se tu tiver uma ideia melhor de como fazer tambem aceito
+        printf("Index Conjunto: %x\n", conjuntos_cache[i].index_conjunto);
+        printf("AND: %x\n", endereco & conjuntos_cache[i].index_conjunto);
+
+        if(
+            ((endereco & conjuntos_cache[i].index_conjunto) == conjuntos_cache[i].index_conjunto) &&
+            conjuntos_cache[i].populado == 1
+          )
         {
-          stats.hits++;
+          printf("Endereco na Cache! Lidando com Hit...\n");
           stats.tempo_total_acesso += dados_entrada.hit_time;
 
           if(operacao == 'w')
           {
+            stats.hits_escrita++;
             // Adcionar logica para write-through
           }
+          if(operacao == 'r')
+          {
+            stats.hits_leitura++;
+          }
+
+          break;
         }
         else
         {
-          stats.misses++;
+          printf("Endereco fora da cache! Lidando com Miss...\n");
+
+          if(operacao == 'w')
+          {
+            stats.misses_escrita++;
+          }
+          if(operacao == 'r')
+          {
+            stats.misses_leitura++;
+          }
+
+          busca_conjunto_mp(endereco);
+
+          break;
 
           // adcionar logica para puxar os dados da memoria e popular cache
         }
