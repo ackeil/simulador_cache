@@ -334,7 +334,8 @@ void cria_arquivo_saida()
 int main()
 {
     FILE *arquivo_entrada;
-    char dados_lidos[11];
+    char dados_lidos[11], operacao;
+    int endereco;
     int i = 0;
 
     printf("--------------------------------------------------------------------------------------------------------------------\n");
@@ -368,9 +369,7 @@ int main()
     printf("Abriu arquivo com sucesso! Lendo dados...\n");
 
     // Le todos os dados do arquivo de entrada e printa
-    while (fgets(dados_lidos, 10, arquivo_entrada) != NULL)
-    {
-      // comentarios do andre = prototipo de uma logica que acho que podemos usar
+    // comentarios do andre = prototipo de uma logica que acho que podemos usar
       /*
           // Passa por todos os conjuntos
           for(i = 0; i < informacoes_cache.numero_conjuntos; i++)
@@ -390,34 +389,26 @@ int main()
           }
       
       */
+    while (fgets(dados_lidos, 11, arquivo_entrada) != NULL)
+    {
+      sscanf(dados_lidos, "%x %c", &endereco, &operacao);
+      printf("Endereco: %x, Operacao: %c\n", endereco, operacao);
+      
+      stats.total_acessos++;
 
-        printf("%i: %s\n", i++, dados_lidos);
+      if (operacao == 'R')
+      {
+          stats.total_leituras++;
+      }
+
+      if (operacao == 'W')
+      {
+          stats.total_escritas++;
+      }
     }
-    /*
-    versao do copiloto
-    comentarios do gabriel = achei genial o sizeof(linha) o resto eh bem normal, creio que podemos usar desse jeito
-        while (fgets(linha, sizeof(linha), arquivo_entrada) != NULL)
-        {
-            if (sscanf(linha, "%x %c", &endereco, &operacao) == 2)
-            {
-                stats.total_acessos++;
 
-                if (operacao == 'R')
-                {
-                    stats.total_leituras++;
-                }
-                else if (operacao == 'W')
-                {
-                    stats.total_escritas++;
-                }
-
-                simular_acesso(endereco, operacao);  comentarios do gabriel = essa eh a funcao principal que vai fazer a simulacao, nao copiei a do coppiloto pra nos fazer !!!
-            }
-        }
-
-        fclose(arquivo_entrada);
-
-
+    fclose(arquivo_entrada);
+  /*
    comentarios do gabriel = copiloto disse para fazer essa funcao depois de passar na cache para fazer o write-back final, preocede??
                     // Função para finalizar cache (write-back final)
                     void finalizar_cache()
