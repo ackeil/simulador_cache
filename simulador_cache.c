@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
 #define TAMANHO_INT 65535
+#define TAMANHO_END 32
 
 #define INPUT_INVALIDO 1
 #define ARQUIVO_INVALIDO 2
@@ -19,18 +21,6 @@ typedef struct str_dados_entrada
     int arquivo_input;
 } str_dados_entrada;
 
-str_dados_entrada dados_entrada;
-
-struct dados_saida
-{
-    str_dados_entrada *ptr_dados_entrada; // Todos os parâmetros de entrada: assim é possível verificar os parâmetros utilizados;
-    int quant_enderecos;                  // Total de endereços no arquivo de entrada: especificar o número de endereços de escrita, leitura e a soma dos dois;
-    int acessos_mp;                       // Total de escritas e leituras da memória principal;
-    int hit_rate;                         // Taxa de acerto (hit rate): especificar esta taxa por leitura, escrita e global (colocar ao lado a quantidade);
-    int tempo_medio_cache;                // Tempo médio de acesso da cache (em ns): utilizar a fórmula vista em aula;
-
-} dados_saida;
-
 typedef struct linha_cache
 {
     int endereco;
@@ -43,15 +33,22 @@ typedef struct conjunto_cache
     str_linha_cache **addr_linhas_cache;
 } str_conjunto_cache;
 
-typedef struct formato_endereco
+// comentarios andre = Coloquei todas as informacoes pra inicializar a cache em uma struct so pra deixar tudo junto
+typedef struct informacoes_cache
 {
-    int tamanho;  //  log2 tamanho M.P        |   32bits
+  int numero_conjuntos; // numero_linhas / associatividade
+  int mascara_conjuntos;
+
+  struct
+  {
     int rotulo;   //  restante dos bits       |   32 - ( conjunto + palavra)
     int conjunto; //  log2 quant conjuntos    |   log2 ( dados_entrada.numero_linhas / dados_entrada.associatividade)
     int palavra;  //  log2 tamanho conjuntos  |   log2 dados_entrada.associatividade
-} str_formato_endereco;
+  }endereco;
+}str_informacoes_cache;
 
 // comentarios do gabriel = gostei da ideia de usar uma struct para guardar as estatisticas pro isso aderi, caso quiser mudar avisa
+// comentarios do andre = alterei a struct pra ter tambem o que o Adami pediu pra estar no arquivo de saida
 struct estatisticas
 {
     int total_acessos;
@@ -64,6 +61,11 @@ struct estatisticas
     int acessos_mp_leitura;
     int acessos_mp_escrita;
     double tempo_total_acesso;
+
+    int quant_enderecos;                  // Total de endereços no arquivo de entrada: especificar o número de endereços de escrita, leitura e a soma dos dois;
+    int acessos_mp;                       // Total de escritas e leituras da memória principal;
+    int hit_rate;                         // Taxa de acerto (hit rate): especificar esta taxa por leitura, escrita e global (colocar ao lado a quantidade);
+    int tempo_medio_cache;                // Tempo médio de acesso da cache (em ns): utilizar a fórmula vista em aula;
 } stats;
 
 // Armazena durante o loop qual foi o conjunto menos utilizado
@@ -72,7 +74,9 @@ int contador_lru;
 
 char caminho_saida[100];
 
-FILE *arquivo_entrada, arquivo_saida;
+str_dados_entrada     dados_entrada;
+str_informacoes_cache informacoes_cache;
+str_conjunto_cache*   conjuntos_cache;
 
 void trata_erro(int erro)
 {
@@ -96,38 +100,44 @@ void trata_erro(int erro)
 }
 
 /*
-    Printa uma mensagem indicando qual dado de entrada deve ser inputado,
-    Uma mensagem indicando o que torna o dado valido
-    Joga o dado para a struct de entrada
-    Verifica se o dado é valido
+    Calcula o numero de conjuntos
+    Formata o endereco baseado nos dados inputados
+    Monta a mascara para verificar conjunto
+    Inicializa cada conjunto na cache
+    Em cada conjunto, inicializa as linhas
 */
-void begin_cache()
+void inicializa_cache()
 {
-    /*
-    versao do copiloto
+    int i, j;
+    // Calcula a quantidade de conjuntos
+    informacoes_cache.numero_conjuntos    = dados_entrada.numero_linhas / dados_entrada.associatividade;
 
-    numero_conjuntos = dados_entrada.numero_linhas / dados_entrada.associatividade;
-    formato_end.bits_offset = log2_int(dados_entrada.tamanho_linha);
-    formato_end.bits_indice = log2_int(numero_conjuntos);
-    formato_end.bits_tag = 32 - formato_end.bits_offset - formato_end.bits_indice;
+    // Formata o endereco de acordo com os inputs
+    informacoes_cache.endereco.rotulo     = 32 - (informacoes_cache.endereco.palavra + informacoes_cache.endereco.conjunto);
+    informacoes_cache.endereco.conjunto   = log2(informacoes_cache.numero_conjuntos);
+    informacoes_cache.endereco.palavra    = log2(dados_entrada.tamanho_linha);
 
-    cache = (str_conjunto_cache *)malloc(numero_conjuntos * sizeof(str_conjunto_cache));
+    // Deixa pronta a mascara para os conjuntos
+    informacoes_cache.mascara_conjuntos   = (int)(pow(2, informacoes_cache.endereco.conjunto) - 1) << informacoes_cache.endereco.palavra;
 
-    for (int i = 0; i < numero_conjuntos; i++)
+    // Aloca a quantidade de conjuntos da cache
+    conjuntos_cache = (str_conjunto_cache*) malloc (informacoes_cache.numero_conjuntos * (sizeof(str_conjunto_cache)));
+
+    // Passa por cada conjunto e aloca as linhas de cada um deles
+    for(i = 0; i < informacoes_cache.numero_conjuntos; i++)
     {
-        cache[i].index_conjunto = i;
-        cache[i].addr_linhas_cache = (str_linha_cache **)malloc(dados_entrada.associatividade * sizeof(str_linha_cache *));
+      conjuntos_cache[i].index_conjunto    = 0;
+      conjuntos_cache[i].dirty_bit         = 0;
+      conjuntos_cache[i].addr_linhas_cache = (str_linha_cache **) malloc (dados_entrada.associatividade * sizeof(str_linha_cache*));
 
-        for (int j = 0; j < dados_entrada.associatividade; j++)
-        {
-            cache[i].addr_linhas_cache[j] = (str_linha_cache *)malloc(sizeof(str_linha_cache));
-            cache[i].addr_linhas_cache[j]->LRU = 0;
-            cache[i].addr_linhas_cache[j]->dirty_bit = 0;
-            cache[i].addr_linhas_cache[j]->tag = 0;
-            cache[i].addr_linhas_cache[j]->valido = 0;
-        }
+      for(j = 0; j < dados_entrada.associatividade; j++)
+      {
+        conjuntos_cache[i].addr_linhas_cache[j] = (str_linha_cache *) malloc (dados_entrada.associatividade * sizeof(str_linha_cache));
+
+        conjuntos_cache[i].addr_linhas_cache[j]->endereco = 0;
+      }
     }
-*/
+
     // Inicializar estatísticas
     stats.total_acessos = 0;
     stats.total_leituras = 0;
@@ -139,6 +149,10 @@ void begin_cache()
     stats.acessos_mp_leitura = 0;
     stats.acessos_mp_escrita = 0;
     stats.tempo_total_acesso = 0.0;
+    stats.quant_enderecos = 0;
+    stats.acessos_mp = 0;
+    stats.hit_rate = 0;
+    stats.tempo_medio_cache = 0;
     contador_lru = 0;
 }
 void trata_dados_entrada()
@@ -246,9 +260,10 @@ void trata_dados_entrada()
     scanf("%s", caminho_saida);
 }
 
-void saida_arquivo()
+// comentarios do andre - Alterei o nome da funcao pra ficar mais proximo do que ela realmente faz
+void cria_arquivo_saida()
 {
-    FILE *arquivo_saida = fopen(caminho_saida, "w");
+    FILE *arquivo_saida = fopen(caminho_saida, "w+");
     if (arquivo_saida == NULL)
     {
         printf("Erro ao criar arquivo de saída!\n");
@@ -257,6 +272,38 @@ void saida_arquivo()
     fprintf(arquivo_saida, "SIMULAÇÃO DE CACHE\n\n");
 
     // comentarios do gabriel = colocar os parametros de entrada???
+    // comentarios do andre = Colocado meu patrao
+
+    fprintf(arquivo_saida, "DADOS ENTRADA:\n");
+
+    fprintf(arquivo_saida, "Politica de escrita: ");
+    if(dados_entrada.politica_escrita == 0)
+    {
+      fprintf(arquivo_saida, "Write-Through\n");
+    }
+    else fprintf(arquivo_saida, "Write-Back\n");
+
+    fprintf(arquivo_saida, "Tamanho da linha: %d\n", dados_entrada.tamanho_linha);
+    fprintf(arquivo_saida, "Numero de Linhas: %d\n", dados_entrada.numero_linhas);
+    fprintf(arquivo_saida, "Associatividade (Linhas por Conjunto): %d\n", dados_entrada.associatividade);
+    fprintf(arquivo_saida, "Hit Time: %d\n", dados_entrada.hit_time);
+
+    fprintf(arquivo_saida, "Politica de Substituicao: ");
+    if(dados_entrada.politica_subs == 0)
+    {
+      fprintf(arquivo_saida, "LRU\n");
+    }
+    else fprintf(arquivo_saida, "Aleatorio\n");
+
+    fprintf(arquivo_saida, "Tempo de Leitura MP: %d\n", dados_entrada.tempo_mp_leitura);
+    fprintf(arquivo_saida, "Tempo de Escrita MP: %d\n", dados_entrada.tempo_mp_escrita);
+
+    fprintf(arquivo_saida, "Arquivo de Entrada: ");
+    if(dados_entrada.arquivo_input == 0)
+    {
+      fprintf(arquivo_saida, "teste.cache\n");
+    }
+    else fprintf(arquivo_saida, "oficial.cache\n");
 
     fprintf(arquivo_saida, "ACESSOS:\n");
     fprintf(arquivo_saida, "Total de acessos: %d\n", stats.total_acessos);
@@ -286,6 +333,7 @@ void saida_arquivo()
 
 int main()
 {
+    FILE *arquivo_entrada;
     char dados_lidos[11];
     int i = 0;
 
@@ -300,7 +348,6 @@ int main()
     printf("--------------------------------------------------------------------------------------------------------------------\n");
 
     trata_dados_entrada();
-    begin_cache();
 
     //  comentarios do gabriel = Pedir caminho para os arquivos de entrada?? pq fiquei com preguica de mudar o arquivo pra esse caminho ai
     if (dados_entrada.arquivo_input == 1)
@@ -315,11 +362,35 @@ int main()
         trata_erro(ARQUIVO_INVALIDO);
     }
 
+    // comentarios do andre - Joguei a inicializacao da cache pra depois da verificacao do arquivo de input
+    inicializa_cache();
+    
     printf("Abriu arquivo com sucesso! Lendo dados...\n");
 
     // Le todos os dados do arquivo de entrada e printa
     while (fgets(dados_lidos, 10, arquivo_entrada) != NULL)
     {
+      // comentarios do andre = prototipo de uma logica que acho que podemos usar
+      /*
+          // Passa por todos os conjuntos
+          for(i = 0; i < informacoes_cache.numero_conjuntos; i++)
+          {
+            if(endereco_lido & conjuntos_cache[i].mascara_conjunto)
+            {
+              quant_hits++;
+              tempo_memoria += informacoes_cache.hit_time;
+            }
+            else
+            {
+              // Implementar logica do LRU e substituir conjunto na Cache
+              busca_conjunto_mp();
+              quant_miss++;
+              tempo_memoria += informacoes_cache.tempo_mp;
+            }
+          }
+      
+      */
+
         printf("%i: %s\n", i++, dados_lidos);
     }
     /*
@@ -368,7 +439,7 @@ int main()
                         }
                     }
     */
-    saida_arquivo();
+    cria_arquivo_saida();
     return 0;
 
     // Ler os dados do arquivo e alocar a memoria para usar
