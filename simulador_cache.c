@@ -38,7 +38,7 @@ typedef struct conjunto_cache
 {
     int dirty_bit;
     int index_conjunto;
-    int populado;
+    long long int lru;
     str_linha_cache **addr_linhas_cache;
 } str_conjunto_cache;
 
@@ -79,8 +79,7 @@ struct estatisticas
 } stats;
 
 // Armazena durante o loop qual foi o conjunto menos utilizado
-int *array_lru;
-int contador_lru;
+long long int contador_lru;
 
 char caminho_saida[100];
 
@@ -141,7 +140,6 @@ void inicializa_cache()
     // Passa por cada conjunto e aloca as linhas de cada um deles
     for(i = 0; i < informacoes_cache.numero_conjuntos; i++)
     {
-      conjuntos_cache[i].populado          = 0;
       conjuntos_cache[i].index_conjunto    = 0;
       conjuntos_cache[i].dirty_bit         = 0;
       conjuntos_cache[i].addr_linhas_cache = (str_linha_cache **) malloc (dados_entrada.associatividade * sizeof(str_linha_cache*));
@@ -178,6 +176,21 @@ void inicializa_cache()
     contador_lru = 0;
 }
 
+int busca_lru()
+{
+  int i, aux;
+
+  aux = conjuntos_cache[0].lru;
+
+  // Passa por todos os conjuntos
+  for(i = 0; i < informacoes_cache.numero_conjuntos; i++)
+  {
+    if(aux > conjuntos_cache[i].lru)aux = conjuntos_cache[i].lru;
+  }
+
+  return aux;
+}
+
 void busca_conjunto_mp(int endereco)
 {
   int conjunto_atualizado;
@@ -196,14 +209,12 @@ void busca_conjunto_mp(int endereco)
     }
     if(dados_entrada.politica_subs == 0)
     {
-      conjunto_atualizado = 0;
-      // Implementar logica para LRU
+      conjunto_atualizado = busca_lru();
     }
   }
   else conjunto_atualizado = informacoes_cache.index_ocupacao_cache++;
 
   conjuntos_cache[conjunto_atualizado].index_conjunto = (endereco & informacoes_cache.mascara_conjuntos);
-  conjuntos_cache[conjunto_atualizado].populado = 1;
 
   printf("Conjunto Atualizado: %i\n", conjunto_atualizado);
   printf("Index Conjunto: %x\n", conjuntos_cache[conjunto_atualizado].index_conjunto);
@@ -444,6 +455,10 @@ int main()
               ((endereco & conjuntos_cache[i].index_conjunto) != 0)
             )
           {
+            contador_lru++;
+    
+            conjuntos_cache[i].lru = contador_lru;
+
             stats.tempo_total_acesso += dados_entrada.hit_time;
 
             if(operacao == 'w')
