@@ -11,7 +11,7 @@ Tempo de Leitura MP: 70
 Tempo de Escrita MP: 0
 Arquivo de Entrada: teste.cache
 ACESSOS:
-Total de acessos: 200
+Total de acessos: 300
 Total de leituras: 0
 Total de escritas: 0
 
@@ -22,8 +22,6 @@ Misses de leitura: 0
 Misses de escrita: 0
 
 MEMÓRIA PRINCIPAL:
-Acessos à memória principal (leitura): 0
-Acessos à memória principal (escrita): 0
-Tempo total de acesso: 285.0000 ns
-Tempo médio de acesso da cache: 1.4250 ns
+Tempo total de acesso: 0.0000 ns
+Tempo médio de acesso da cache: 0.0000 ns
 Taxa de acerto (hit rate): 0.0000%

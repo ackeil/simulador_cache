@@ -2,13 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-/*
-  TODO:
-      Logica da LRU -> Fazer do jeito porco, se for MUITO ruim, usar lista indexada para facilitar
-      Escrever na memoria principal
-*/
-
-// gcc -o simulador_cache.exe simulador_cache.c; echo "0`n128`n16`n4`n5`n1`n70`n70`nteste.cache`nresultado_teste.txt" | .\simulador_cache.exe
+// gcc -o simulador_cache.exe simulador_cache.c; echo "0`n128`n16`n4`n5`n1`n70`n70`nC:\resultado_teste.txt" | .\simulador_cache.exe
 
 #define TAMANHO_INT 65535
 #define TAMANHO_END 32
@@ -66,21 +60,21 @@ struct estatisticas
     int total_escritas;
     int hits_leitura;
     int hits_escrita;
-    int misses_leitura;
-    int misses_escrita;
-    int acessos_mp_leitura;
-    int acessos_mp_escrita;
+    int leitura_mp;
+    int escrita_mp;
+
     double tempo_total_acesso;
 
     int quant_enderecos;                  // Total de endereços no arquivo de entrada: especificar o número de endereços de escrita, leitura e a soma dos dois;
     int acessos_mp;                       // Total de escritas e leituras da memória principal;
     int hit_rate;                         // Taxa de acerto (hit rate): especificar esta taxa por leitura, escrita e global (colocar ao lado a quantidade);
+    int hit_rate_leituras;
+    int hit_rate_escritas;
     int tempo_medio_cache;                // Tempo médio de acesso da cache (em ns): utilizar a fórmula vista em aula;
 } stats;
 
 // Armazena durante o loop qual foi o conjunto menos utilizado
 long long int contador_lru;
-
 char caminho_saida[100];
 
 str_dados_entrada     dados_entrada;
@@ -164,10 +158,8 @@ void inicializa_cache()
     stats.total_escritas = 0;
     stats.hits_leitura = 0;
     stats.hits_escrita = 0;
-    stats.misses_leitura = 0;
-    stats.misses_escrita = 0;
-    stats.acessos_mp_leitura = 0;
-    stats.acessos_mp_escrita = 0;
+    stats.leitura_mp = 0;
+    stats.escrita_mp = 0;
     stats.tempo_total_acesso = 0.0;
     stats.quant_enderecos = 0;
     stats.acessos_mp = 0;
@@ -218,6 +210,21 @@ void busca_conjunto_mp(int endereco)
 
   printf("Conjunto Atualizado: %i\n", conjunto_atualizado);
   printf("Index Conjunto: %x\n", conjuntos_cache[conjunto_atualizado].index_conjunto);
+}
+
+void finaliza_write_back(void)
+{
+  int i;
+
+  // Passa por todos os conjuntos
+  for(i = 0; i < informacoes_cache.numero_conjuntos; i++)
+  {
+    if(conjuntos_cache[i].dirty_bit == 1)
+    {
+      stats.total_escritas++;
+      stats.escrita_mp++;
+    }
+  }
 }
 
 void trata_dados_entrada()
@@ -328,17 +335,18 @@ void trata_dados_entrada()
 // comentarios do andre - Alterei o nome da funcao pra ficar mais proximo do que ela realmente faz
 void cria_arquivo_saida()
 {
-    FILE *arquivo_saida = fopen(caminho_saida, "w+");
+    FILE *arquivo_saida;
+    arquivo_saida = fopen(caminho_saida, "w+");
 
     if (arquivo_saida == NULL)
     {
         printf("Erro ao criar arquivo de saida!\n");
         return;
     }
-    fprintf(arquivo_saida, "SIMULAÇÃO DE CACHE\n\n");
 
-    // comentarios do gabriel = colocar os parametros de entrada???
-    // comentarios do andre = Colocado meu patrao
+    printf("Arquivo gerado em: %s\n", caminho_saida);
+
+    fprintf(arquivo_saida, "SIMULAÇÃO DE CACHE\n\n");
 
     fprintf(arquivo_saida, "DADOS ENTRADA:\n");
 
@@ -379,12 +387,15 @@ void cria_arquivo_saida()
     fprintf(arquivo_saida, "HITS:\n");
     fprintf(arquivo_saida, "Hits de leitura: %d\n", stats.hits_leitura);
     fprintf(arquivo_saida, "Hits de escrita: %d\n", stats.hits_escrita);
-    fprintf(arquivo_saida, "Misses de leitura: %d\n", stats.misses_leitura);
-    fprintf(arquivo_saida, "Misses de escrita: %d\n\n", stats.misses_escrita);
+    fprintf(arquivo_saida, "Misses de leitura: %d\n", stats.leitura_mp);
+    fprintf(arquivo_saida, "Misses de escrita: %d\n\n", stats.escrita_mp);
+
+    stats.tempo_total_acesso =  (stats.hits_leitura * dados_entrada.hit_time) + 
+                                (stats.hits_escrita * dados_entrada.hit_time) +
+                                (stats.leitura_mp * dados_entrada.tempo_mp_leitura) + 
+                                (stats.escrita_mp * dados_entrada.tempo_mp_escrita);
 
     fprintf(arquivo_saida, "MEMÓRIA PRINCIPAL:\n");
-    fprintf(arquivo_saida, "Acessos à memória principal (leitura): %d\n", stats.acessos_mp_leitura);
-    fprintf(arquivo_saida, "Acessos à memória principal (escrita): %d\n", stats.acessos_mp_escrita);
     fprintf(arquivo_saida, "Tempo total de acesso: %.4f ns\n", stats.tempo_total_acesso);
     fprintf(arquivo_saida, "Tempo médio de acesso da cache: %.4f ns\n", stats.tempo_total_acesso / stats.total_acessos);
     fprintf(arquivo_saida, "Taxa de acerto (hit rate): %.4f%%\n", (double)(stats.hits_leitura + stats.hits_escrita) / stats.total_acessos * 100);
@@ -392,6 +403,7 @@ void cria_arquivo_saida()
     // comentarios do gabriel = fazer calculo de porcentagem de acertos e tempo medio???
 
     fclose(arquivo_saida);
+
     printf("Arquivo de saida gerado com sucesso!\n");
 }
 
@@ -413,6 +425,8 @@ int main()
     printf("--------------------------------------------------------------------------------------------------------------------\n");
 
     trata_dados_entrada();
+
+    printf("Caminho Saida: %s\n", caminho_saida);
 
     //  comentarios do gabriel = Pedir caminho para os arquivos de entrada?? pq fiquei com preguica de mudar o arquivo pra esse caminho ai
     if (dados_entrada.arquivo_input == 1)
@@ -439,7 +453,9 @@ int main()
 
       if(sscanf(dados_lidos, "%x %c", &endereco, &operacao) == 2)
       {
-        printf("Endereco: %x\nOperacao: %c\n", endereco, operacao);
+        // printf("Endereco: %x\nOperacao: %c\n", endereco, operacao);
+
+        stats.total_acessos++;
 
         printf("---------------------------------------------------------------------------------------------\n");
         // Passa por todos os conjuntos
@@ -448,7 +464,7 @@ int main()
           // comentarios do andre = Precisa ver pq a mascara nao esta 100% ainda
           // ou se tu tiver uma ideia melhor de como fazer tambem aceito
 
-          printf("I: %i\nIndex Conjunto: %x\n", i, conjuntos_cache[i].index_conjunto);
+          // printf("I: %i\nIndex Conjunto: %x\n", i, conjuntos_cache[i].index_conjunto);
         
           if(
               ((endereco & conjuntos_cache[i].index_conjunto) == conjuntos_cache[i].index_conjunto) &&
@@ -459,15 +475,15 @@ int main()
     
             conjuntos_cache[i].lru = contador_lru;
 
-            stats.tempo_total_acesso += dados_entrada.hit_time;
-
             if(operacao == 'w')
             {
+              stats.total_escritas++;
               stats.hits_escrita++;
               // Adcionar logica para write-through
             }
             if(operacao == 'r')
             {
+              stats.total_leituras++;
               stats.hits_leitura++;
             }
 
@@ -480,11 +496,13 @@ int main()
         {
           if(operacao == 'w')
           {
-            stats.misses_escrita++;
+            stats.total_escritas++;
+            stats.escrita_mp++;
           }
           if(operacao == 'r')
           {
-            stats.misses_leitura++;
+            stats.total_leituras++;
+            stats.leitura_mp++;
           }
           
           busca_conjunto_mp(endereco);
