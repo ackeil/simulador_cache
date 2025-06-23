@@ -2,6 +2,14 @@
 #include <stdlib.h>
 #include <math.h>
 
+/*
+  TODO:
+      Logica da LRU -> Fazer do jeito porco, se for MUITO ruim, usar lista indexada para facilitar
+      Escrever na memoria principal
+*/
+
+// gcc -o simulador_cache.exe simulador_cache.c; echo "0`n128`n16`n4`n5`n1`n70`n70`nteste.cache`nresultado_teste.txt" | .\simulador_cache.exe
+
 #define TAMANHO_INT 65535
 #define TAMANHO_END 32
 
@@ -115,9 +123,9 @@ void inicializa_cache()
     informacoes_cache.numero_conjuntos    = dados_entrada.numero_linhas / dados_entrada.associatividade;
 
     // Formata o endereco de acordo com os inputs
-    informacoes_cache.endereco.rotulo     = 32 - (informacoes_cache.endereco.palavra + informacoes_cache.endereco.conjunto);
-    informacoes_cache.endereco.conjunto   = log2(informacoes_cache.numero_conjuntos);
     informacoes_cache.endereco.palavra    = log2(dados_entrada.tamanho_linha);
+    informacoes_cache.endereco.conjunto   = log2(informacoes_cache.numero_conjuntos);
+    informacoes_cache.endereco.rotulo     = TAMANHO_END - (informacoes_cache.endereco.palavra + informacoes_cache.endereco.conjunto);
 
     // Deixa pronta a mascara para os conjuntos
     informacoes_cache.mascara_conjuntos   = (int)(pow(2, informacoes_cache.endereco.conjunto) - 1) << informacoes_cache.endereco.palavra;
@@ -188,6 +196,7 @@ void busca_conjunto_mp(int endereco)
     }
     if(dados_entrada.politica_subs == 0)
     {
+      conjunto_atualizado = 0;
       // Implementar logica para LRU
     }
   }
@@ -196,8 +205,7 @@ void busca_conjunto_mp(int endereco)
   conjuntos_cache[conjunto_atualizado].index_conjunto = (endereco & informacoes_cache.mascara_conjuntos);
   conjuntos_cache[conjunto_atualizado].populado = 1;
 
-  printf("Endereco: %x\n", endereco);
-  printf("Mascara: %x\n", informacoes_cache.mascara_conjuntos);
+  printf("Conjunto Atualizado: %i\n", conjunto_atualizado);
   printf("Index Conjunto: %x\n", conjuntos_cache[conjunto_atualizado].index_conjunto);
 }
 
@@ -310,9 +318,10 @@ void trata_dados_entrada()
 void cria_arquivo_saida()
 {
     FILE *arquivo_saida = fopen(caminho_saida, "w+");
+
     if (arquivo_saida == NULL)
     {
-        printf("Erro ao criar arquivo de saída!\n");
+        printf("Erro ao criar arquivo de saida!\n");
         return;
     }
     fprintf(arquivo_saida, "SIMULAÇÃO DE CACHE\n\n");
@@ -372,9 +381,7 @@ void cria_arquivo_saida()
     // comentarios do gabriel = fazer calculo de porcentagem de acertos e tempo medio???
 
     fclose(arquivo_saida);
-    printf("Arquivo de saída gerado com sucesso!\n");
-
-    // comentarios do gabriel = ta agardavel assim?
+    printf("Arquivo de saida gerado com sucesso!\n");
 }
 
 int main()
@@ -417,42 +424,45 @@ int main()
     // Le todos os dados do arquivo de entrada e printa
     while (fgets(dados_lidos, 11, arquivo_entrada) != NULL)
     {
-      sscanf(dados_lidos, "%x %c", &endereco, &operacao);
-      printf("Endereco: %x, Operacao: %c\n", endereco, operacao);
-      
       stats.total_acessos++;
-      // Passa por todos os conjuntos
-      for(i = 0; i < informacoes_cache.numero_conjuntos; i++)
+
+      if(sscanf(dados_lidos, "%x %c", &endereco, &operacao) == 2)
       {
-        // comentarios do andre = Precisa ver pq a mascara nao esta 100% ainda
-        // ou se tu tiver uma ideia melhor de como fazer tambem aceito
-        printf("Index Conjunto: %x\n", conjuntos_cache[i].index_conjunto);
-        printf("AND: %x\n", endereco & conjuntos_cache[i].index_conjunto);
+        printf("Endereco: %x\nOperacao: %c\n", endereco, operacao);
 
-        if(
-            ((endereco & conjuntos_cache[i].index_conjunto) == conjuntos_cache[i].index_conjunto) &&
-            conjuntos_cache[i].populado == 1
-          )
+        printf("---------------------------------------------------------------------------------------------\n");
+        // Passa por todos os conjuntos
+        for(i = 0; i < informacoes_cache.numero_conjuntos; i++)
         {
-          printf("Endereco na Cache! Lidando com Hit...\n");
-          stats.tempo_total_acesso += dados_entrada.hit_time;
+          // comentarios do andre = Precisa ver pq a mascara nao esta 100% ainda
+          // ou se tu tiver uma ideia melhor de como fazer tambem aceito
 
-          if(operacao == 'w')
+          printf("I: %i\nIndex Conjunto: %x\n", i, conjuntos_cache[i].index_conjunto);
+        
+          if(
+              ((endereco & conjuntos_cache[i].index_conjunto) == conjuntos_cache[i].index_conjunto) &&
+              ((endereco & conjuntos_cache[i].index_conjunto) != 0)
+            )
           {
-            stats.hits_escrita++;
-            // Adcionar logica para write-through
-          }
-          if(operacao == 'r')
-          {
-            stats.hits_leitura++;
-          }
+            stats.tempo_total_acesso += dados_entrada.hit_time;
 
-          break;
+            if(operacao == 'w')
+            {
+              stats.hits_escrita++;
+              // Adcionar logica para write-through
+            }
+            if(operacao == 'r')
+            {
+              stats.hits_leitura++;
+            }
+
+            break;
+          }
         }
-        else
-        {
-          printf("Endereco fora da cache! Lidando com Miss...\n");
 
+        // Se chegou no ultimo elemento e nao deu hit
+        if(i == informacoes_cache.numero_conjuntos)
+        {
           if(operacao == 'w')
           {
             stats.misses_escrita++;
@@ -461,13 +471,11 @@ int main()
           {
             stats.misses_leitura++;
           }
-
+          
           busca_conjunto_mp(endereco);
-
-          break;
-
-          // adcionar logica para puxar os dados da memoria e popular cache
         }
+
+        // adcionar logica para puxar os dados da memoria e popular cache
       }
     }
   
@@ -525,6 +533,6 @@ int main()
         Total de escritas e leituras da memória principal;
         Taxa de acerto (hit rate): especificar esta taxa por leitura, escrita e global (colocar ao lado a quantidade);
         Tempo médio de acesso da cache (em ns): utilizar a fórmula vista em aula;
-        Todas as saídas que forem números reais devem ter 4 casas decimais. Ao término da simulação, deve-se atualizar a memória principal com as caches alteradas (caso necessário).
+        Todas as saidas que forem números reais devem ter 4 casas decimais. Ao término da simulação, deve-se atualizar a memória principal com as caches alteradas (caso necessário).
     */
 }
