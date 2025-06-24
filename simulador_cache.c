@@ -332,7 +332,6 @@ void trata_dados_entrada()
     scanf("%s", caminho_saida);
 }
 
-// comentarios do andre - Alterei o nome da funcao pra ficar mais proximo do que ela realmente faz
 void cria_arquivo_saida()
 {
     FILE *arquivo_saida;
@@ -428,7 +427,6 @@ int main()
 
     printf("Caminho Saida: %s\n", caminho_saida);
 
-    //  comentarios do gabriel = Pedir caminho para os arquivos de entrada?? pq fiquei com preguica de mudar o arquivo pra esse caminho ai
     if (dados_entrada.arquivo_input == 1)
     {
         arquivo_entrada = fopen("C:\\oficial.cache", "r");
@@ -441,7 +439,6 @@ int main()
         trata_erro(ARQUIVO_INVALIDO);
     }
 
-    // comentarios do andre - Joguei a inicializacao da cache pra depois da verificacao do arquivo de input
     inicializa_cache();
     
     printf("Abriu arquivo com sucesso! Lendo dados...\n");
@@ -461,9 +458,6 @@ int main()
         // Passa por todos os conjuntos
         for(i = 0; i < informacoes_cache.numero_conjuntos; i++)
         {
-          // comentarios do andre = Precisa ver pq a mascara nao esta 100% ainda
-          // ou se tu tiver uma ideia melhor de como fazer tambem aceito
-
           // printf("I: %i\nIndex Conjunto: %x\n", i, conjuntos_cache[i].index_conjunto);
         
           if(
@@ -480,6 +474,7 @@ int main()
               stats.total_escritas++;
               stats.hits_escrita++;
               // Adcionar logica para write-through
+              // Precisa de logica para WT??
             }
             if(operacao == 'r')
             {
@@ -507,35 +502,10 @@ int main()
           
           busca_conjunto_mp(endereco);
         }
-
-        // adcionar logica para puxar os dados da memoria e popular cache
       }
     }
   
-
     fclose(arquivo_entrada);
-  /*
-   comentarios do gabriel = copiloto disse para fazer essa funcao depois de passar na cache para fazer o write-back final, preocede??
-                    // Função para finalizar cache (write-back final)
-                    void finalizar_cache()
-                    {
-                        if (dados_entrada.politica_escrita == 1)
-                        { // Write-back
-                            for (int i = 0; i < numero_conjuntos; i++)
-                            {
-                                for (int j = 0; j < dados_entrada.associatividade; j++)
-                                {
-                                    if (cache[i].addr_linhas_cache[j]->valido &&
-                                        cache[i].addr_linhas_cache[j]->dirty_bit)
-                                    {
-                                        stats.acessos_mp_escrita++;
-                                        stats.tempo_total_acesso += dados_entrada.tempo_mp_escrita;
-                                    }
-                                }
-                            }
-                        }
-                    }
-    */
     cria_arquivo_saida();
     return 0;
 
