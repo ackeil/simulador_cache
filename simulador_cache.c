@@ -177,10 +177,7 @@ int busca_lru()
   // Passa por todos os conjuntos
   for(i = 0; i < informacoes_cache.numero_conjuntos; i++)
   {
-<<<<<<< HEAD
-=======
     // ISSO ta BEM errado
->>>>>>> 3b9c0024288eeed32ca8b554502c8229e3c72b7c
     if(aux > conjuntos_cache[i].lru)aux = i;
   }
 
