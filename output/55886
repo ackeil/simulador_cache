@@ -1,0 +1,27 @@
+SIMULAÇÃO DE CACHE
+
+DADOS ENTRADA:
+Politica de escrita: Write-Through
+Tamanho da linha: 128
+Numero de Linhas: 16
+Associatividade (Linhas por Conjunto): 4
+Hit Time: 5
+Politica de Substituicao: LRU
+Tempo de Leitura MP: 70
+Tempo de Escrita MP: 0
+Arquivo de Entrada: oficial.cache
+ACESSOS:
+Total de acessos: 51200
+Total de leituras: 45056
+Total de escritas: 6144
+
+HITS:
+Hits de leitura: 33789
+Hits de escrita: 1536
+Misses de leitura: 11267
+Misses de escrita: 4608
+
+MEMÓRIA PRINCIPAL:
+Tempo total de acesso: 965315.0000 ns
+Tempo médio de acesso da cache: 18.8538 ns
+Taxa de acerto (hit rate): 68.9941%
