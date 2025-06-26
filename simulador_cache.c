@@ -177,8 +177,7 @@ int busca_lru()
   // Passa por todos os conjuntos
   for(i = 0; i < informacoes_cache.numero_conjuntos; i++)
   {
-    // ISSO ta BEM errado
-    if(aux > conjuntos_cache[i].lru)aux = i;
+    if(aux < conjuntos_cache[i].lru)aux = i;
   }
 
   return aux;
@@ -525,8 +524,6 @@ int main()
             {
               stats.total_escritas++;
               stats.hits_escrita++;
-              // Adcionar logica para write-through
-              // Precisa de logica para WT??
             }
             if(operacao == 'R')
             {
