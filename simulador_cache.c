@@ -401,6 +401,60 @@ void cria_arquivo_saida()
 
     // comentarios do gabriel = fazer calculo de porcentagem de acertos e tempo medio???
 
+    printf("SIMULAÇÃO DE CACHE\n\n");
+
+    printf("DADOS ENTRADA:\n");
+
+    printf("Politica de escrita: ");
+    if(dados_entrada.politica_escrita == 0)
+    {
+      printf("Write-Through\n");
+    }
+    else printf("Write-Back\n");
+
+    printf("Tamanho da linha: %d\n", dados_entrada.tamanho_linha);
+    printf("Numero de Linhas: %d\n", dados_entrada.numero_linhas);
+    printf("Associatividade (Linhas por Conjunto): %d\n", dados_entrada.associatividade);
+    printf("Hit Time: %d\n", dados_entrada.hit_time);
+
+    printf("Politica de Substituicao: ");
+    if(dados_entrada.politica_subs == 0)
+    {
+      printf("LRU\n");
+    }
+    else printf("Aleatorio\n");
+
+    printf("Tempo de Leitura MP: %d\n", dados_entrada.tempo_mp_leitura);
+    printf("Tempo de Escrita MP: %d\n", dados_entrada.tempo_mp_escrita);
+
+    printf("Arquivo de Entrada: ");
+    if(dados_entrada.arquivo_input == 0)
+    {
+      printf("teste.cache\n");
+    }
+    else printf("oficial.cache\n");
+
+    printf("ACESSOS:\n");
+    printf("Total de acessos: %d\n", stats.total_acessos);
+    printf("Total de leituras: %d\n", stats.total_leituras);
+    printf("Total de escritas: %d\n\n", stats.total_escritas);
+
+    printf("HITS:\n");
+    printf("Hits de leitura: %d\n", stats.hits_leitura);
+    printf("Hits de escrita: %d\n", stats.hits_escrita);
+    printf("Misses de leitura: %d\n", stats.leitura_mp);
+    printf("Misses de escrita: %d\n\n", stats.escrita_mp);
+
+    stats.tempo_total_acesso =  (stats.hits_leitura * dados_entrada.hit_time) + 
+                                (stats.hits_escrita * dados_entrada.hit_time) +
+                                (stats.leitura_mp * dados_entrada.tempo_mp_leitura) + 
+                                (stats.escrita_mp * dados_entrada.tempo_mp_escrita);
+
+    printf("MEMÓRIA PRINCIPAL:\n");
+    printf("Tempo total de acesso: %.4f ns\n", stats.tempo_total_acesso);
+    printf("Tempo médio de acesso da cache: %.4f ns\n", stats.tempo_total_acesso / stats.total_acessos);
+    printf("Taxa de acerto (hit rate): %.4f%%\n", (double)(stats.hits_leitura + stats.hits_escrita) / stats.total_acessos * 100);
+
     fclose(arquivo_saida);
 
     printf("Arquivo de saida gerado com sucesso!\n");
@@ -451,8 +505,7 @@ int main()
         // printf("Endereco: %x\nOperacao: %c\n", endereco, operacao);
 
         stats.total_acessos++;
-
-        printf("---------------------------------------------------------------------------------------------\n");
+        
         // Passa por todos os conjuntos
         for(i = 0; i < informacoes_cache.numero_conjuntos; i++)
         {
