@@ -177,6 +177,10 @@ int busca_lru()
   // Passa por todos os conjuntos
   for(i = 0; i < informacoes_cache.numero_conjuntos; i++)
   {
+<<<<<<< HEAD
+=======
+    // ISSO ta BEM errado
+>>>>>>> 3b9c0024288eeed32ca8b554502c8229e3c72b7c
     if(aux > conjuntos_cache[i].lru)aux = i;
   }
 
@@ -332,7 +336,6 @@ void trata_dados_entrada()
     scanf("%s", caminho_saida);
 }
 
-// comentarios do andre - Alterei o nome da funcao pra ficar mais proximo do que ela realmente faz
 void cria_arquivo_saida()
 {
     FILE *arquivo_saida;
@@ -402,6 +405,60 @@ void cria_arquivo_saida()
 
     // comentarios do gabriel = fazer calculo de porcentagem de acertos e tempo medio???
 
+    printf("SIMULAÇÃO DE CACHE\n\n");
+
+    printf("DADOS ENTRADA:\n");
+
+    printf("Politica de escrita: ");
+    if(dados_entrada.politica_escrita == 0)
+    {
+      printf("Write-Through\n");
+    }
+    else printf("Write-Back\n");
+
+    printf("Tamanho da linha: %d\n", dados_entrada.tamanho_linha);
+    printf("Numero de Linhas: %d\n", dados_entrada.numero_linhas);
+    printf("Associatividade (Linhas por Conjunto): %d\n", dados_entrada.associatividade);
+    printf("Hit Time: %d\n", dados_entrada.hit_time);
+
+    printf("Politica de Substituicao: ");
+    if(dados_entrada.politica_subs == 0)
+    {
+      printf("LRU\n");
+    }
+    else printf("Aleatorio\n");
+
+    printf("Tempo de Leitura MP: %d\n", dados_entrada.tempo_mp_leitura);
+    printf("Tempo de Escrita MP: %d\n", dados_entrada.tempo_mp_escrita);
+
+    printf("Arquivo de Entrada: ");
+    if(dados_entrada.arquivo_input == 0)
+    {
+      printf("teste.cache\n");
+    }
+    else printf("oficial.cache\n");
+
+    printf("ACESSOS:\n");
+    printf("Total de acessos: %d\n", stats.total_acessos);
+    printf("Total de leituras: %d\n", stats.total_leituras);
+    printf("Total de escritas: %d\n\n", stats.total_escritas);
+
+    printf("HITS:\n");
+    printf("Hits de leitura: %d\n", stats.hits_leitura);
+    printf("Hits de escrita: %d\n", stats.hits_escrita);
+    printf("Misses de leitura: %d\n", stats.leitura_mp);
+    printf("Misses de escrita: %d\n\n", stats.escrita_mp);
+
+    stats.tempo_total_acesso =  (stats.hits_leitura * dados_entrada.hit_time) + 
+                                (stats.hits_escrita * dados_entrada.hit_time) +
+                                (stats.leitura_mp * dados_entrada.tempo_mp_leitura) + 
+                                (stats.escrita_mp * dados_entrada.tempo_mp_escrita);
+
+    printf("MEMÓRIA PRINCIPAL:\n");
+    printf("Tempo total de acesso: %.4f ns\n", stats.tempo_total_acesso);
+    printf("Tempo médio de acesso da cache: %.4f ns\n", stats.tempo_total_acesso / stats.total_acessos);
+    printf("Taxa de acerto (hit rate): %.4f%%\n", (double)(stats.hits_leitura + stats.hits_escrita) / stats.total_acessos * 100);
+
     fclose(arquivo_saida);
 
     printf("Arquivo de saida gerado com sucesso!\n");
@@ -428,7 +485,6 @@ int main()
 
     printf("Caminho Saida: %s\n", caminho_saida);
 
-    //  comentarios do gabriel = Pedir caminho para os arquivos de entrada?? pq fiquei com preguica de mudar o arquivo pra esse caminho ai
     if (dados_entrada.arquivo_input == 1)
     {
         arquivo_entrada = fopen("C:\\oficial.cache", "r");
@@ -441,7 +497,6 @@ int main()
         trata_erro(ARQUIVO_INVALIDO);
     }
 
-    // comentarios do andre - Joguei a inicializacao da cache pra depois da verificacao do arquivo de input
     inicializa_cache();
     
     printf("Abriu arquivo com sucesso! Lendo dados...\n");
@@ -449,21 +504,15 @@ int main()
     // Le todos os dados do arquivo de entrada e printa
     while (fgets(dados_lidos, 11, arquivo_entrada) != NULL)
     {
-      stats.total_acessos++;
-
       if(sscanf(dados_lidos, "%x %c", &endereco, &operacao) == 2)
       {
         // printf("Endereco: %x\nOperacao: %c\n", endereco, operacao);
 
         stats.total_acessos++;
-
-        printf("---------------------------------------------------------------------------------------------\n");
+        
         // Passa por todos os conjuntos
         for(i = 0; i < informacoes_cache.numero_conjuntos; i++)
         {
-          // comentarios do andre = Precisa ver pq a mascara nao esta 100% ainda
-          // ou se tu tiver uma ideia melhor de como fazer tambem aceito
-
           // printf("I: %i\nIndex Conjunto: %x\n", i, conjuntos_cache[i].index_conjunto);
         
           if(
@@ -480,6 +529,7 @@ int main()
               stats.total_escritas++;
               stats.hits_escrita++;
               // Adcionar logica para write-through
+              // Precisa de logica para WT??
             }
             if(operacao == 'R')
             {
@@ -507,35 +557,10 @@ int main()
           
           busca_conjunto_mp(endereco);
         }
-
-        // adcionar logica para puxar os dados da memoria e popular cache
       }
     }
   
-
     fclose(arquivo_entrada);
-  /*
-   comentarios do gabriel = copiloto disse para fazer essa funcao depois de passar na cache para fazer o write-back final, preocede??
-                    // Função para finalizar cache (write-back final)
-                    void finalizar_cache()
-                    {
-                        if (dados_entrada.politica_escrita == 1)
-                        { // Write-back
-                            for (int i = 0; i < numero_conjuntos; i++)
-                            {
-                                for (int j = 0; j < dados_entrada.associatividade; j++)
-                                {
-                                    if (cache[i].addr_linhas_cache[j]->valido &&
-                                        cache[i].addr_linhas_cache[j]->dirty_bit)
-                                    {
-                                        stats.acessos_mp_escrita++;
-                                        stats.tempo_total_acesso += dados_entrada.tempo_mp_escrita;
-                                    }
-                                }
-                            }
-                        }
-                    }
-    */
     cria_arquivo_saida();
     return 0;
 
