@@ -177,7 +177,7 @@ int busca_lru()
   // Passa por todos os conjuntos
   for(i = 0; i < informacoes_cache.numero_conjuntos; i++)
   {
-    if(aux > conjuntos_cache[i].lru)aux = conjuntos_cache[i].lru;
+    if(aux > conjuntos_cache[i].lru)aux = i;
   }
 
   return aux;
@@ -475,13 +475,13 @@ int main()
     
             conjuntos_cache[i].lru = contador_lru;
 
-            if(operacao == 'w')
+            if(operacao == 'W')
             {
               stats.total_escritas++;
               stats.hits_escrita++;
               // Adcionar logica para write-through
             }
-            if(operacao == 'r')
+            if(operacao == 'R')
             {
               stats.total_leituras++;
               stats.hits_leitura++;
@@ -494,12 +494,12 @@ int main()
         // Se chegou no ultimo elemento e nao deu hit
         if(i == informacoes_cache.numero_conjuntos)
         {
-          if(operacao == 'w')
+          if(operacao == 'W')
           {
             stats.total_escritas++;
             stats.escrita_mp++;
           }
-          if(operacao == 'r')
+          if(operacao == 'R')
           {
             stats.total_leituras++;
             stats.leitura_mp++;
