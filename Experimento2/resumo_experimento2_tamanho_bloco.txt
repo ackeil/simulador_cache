@@ -1,0 +1,150 @@
+ANÁLISE DO IMPACTO DO TAMANHO DO BLOCO
+=======================================
+
+CONFIGURAÇÃO DOS EXPERIMENTOS:
+- Tamanho total da cache: 8KB (8192 bytes)
+- Política de escrita: Write-through
+- Associatividade: 2 blocos por conjunto
+- Hit time: 5 ns
+- Tempo de leitura/escrita MP: 70 ns
+- Política de substituição: LRU
+- Arquivo de entrada: oficial.cache
+
+RESULTADOS DOS EXPERIMENTOS:
+=============================
+
+| Tamanho do | Número de | Número de | Taxa de    | Tempo Médio | Total de Acessos |
+| Bloco (B)  | Linhas    | Conjuntos | Acerto (%) | Acesso (ns) | à MP             |
+|------------|-----------|-----------|------------|-------------|------------------|
+| 8          | 1024      | 512       | 96,82      | 7,22        | 7.771            |
+| 16         | 512       | 256       | 96,82      | 7,22        | 7.770            |
+| 32         | 256       | 128       | 89,84      | 12,11       | 11.346           |
+| 64         | 128       | 64        | 89,90      | 12,07       | 11.314           |
+| 128        | 64        | 32        | 87,94      | 13,44       | 12.320           |
+| 256        | 32        | 16        | 82,97      | 16,92       | 14.865           |
+| 512        | 16        | 8         | 76,99      | 21,11       | 17.926           |
+| 1024       | 8         | 4         | 71,00      | 25,30       | 20.992           |
+| 2048       | 4         | 2         | 71,00      | 25,30       | 20.992           |
+| 4096       | 2         | 1         | 62,00      | 31,60       | 25.600           |
+
+ANÁLISE DOS RESULTADOS:
+========================
+
+1. FORMA DA CURVA - IMPACTO DA LOCALIDADE ESPACIAL:
+
+   A curva da taxa de acerto em função do tamanho do bloco possui uma forma característica:
+   
+   a) REGIÃO ASCENDENTE (8-16 bytes): 
+      - Taxa de acerto permanece alta (~96,8%)
+      - Blocos pequenos ainda conseguem capturar a localidade espacial básica
+      - Muitas linhas disponíveis (512-1024) permitem alta flexibilidade
+   
+   b) REGIÃO DE DECLÍNIO GRADUAL (32-128 bytes):
+      - Taxa de acerto começa a declinar (96,8% → 87,9%)
+      - Início do trade-off entre localidade espacial e capacidade de mapeamento
+      - Menos linhas disponíveis começam a limitar a flexibilidade
+   
+   c) REGIÃO DE DECLÍNIO ACENTUADO (256-4096 bytes):
+      - Taxa de acerto cai significativamente (82,9% → 62,0%)
+      - Blocos grandes capturam mais localidade espacial por bloco
+      - Porém, muito poucas linhas (32 → 2) causam mais conflitos
+      - Poluição de cache: dados desnecessários ocupam espaço valioso
+
+2. RELEVÂNCIA DA LOCALIDADE ESPACIAL:
+
+   a) LOCALIDADE ESPACIAL POSITIVA:
+      - Blocos maiores trazem mais dados adjacentes que podem ser utilizados
+      - Reduzem o número de misses para acessos sequenciais
+   
+   b) LOCALIDADE ESPACIAL NEGATIVA:
+      - Blocos muito grandes trazem dados que nunca serão utilizados
+      - Desperdício de espaço na cache (poluição)
+      - Menos linhas disponíveis = mais conflitos entre diferentes regiões de memória
+   
+   c) TRADE-OFF CRÍTICO:
+      - Blocos pequenos: alta flexibilidade, baixa localidade espacial
+      - Blocos grandes: alta localidade espacial por acesso, baixa flexibilidade
+
+3. TAMANHO ÓTIMO DE BLOCO:
+
+   TAMANHO ÓTIMO: 8-16 bytes
+   
+   Justificativas:
+   - Maior taxa de acerto: 96,82%
+   - Menor tempo médio de acesso: 7,22 ns
+   - Menor número de acessos à MP: ~7.770
+   - Melhor balance entre localidade espacial e flexibilidade de mapeamento
+   
+   Para este conjunto de dados específico:
+   - A localidade espacial não é muito forte além de 8-16 bytes
+   - A alta flexibilidade (muitas linhas) compensa a menor localidade espacial
+   - Cache de 8KB funciona melhor com muitas linhas pequenas que poucas linhas grandes
+
+4. COMPORTAMENTO INTERESSANTE:
+
+   - PLATÔ em 2048-1024 bytes: mesma taxa de acerto (71%)
+   - Indica que o padrão de acesso do programa tem limitações naturais
+   - Muito poucas linhas (4-8) criam gargalo independente do tamanho do bloco
+
+CONCLUSÕES:
+===========
+
+1. Para uma cache de 8KB com associatividade 2 e este padrão de acesso específico, 
+   blocos de 8-16 bytes oferecem a melhor performance.
+
+2. A forma da curva demonstra que há um ponto ótimo onde se maximiza o benefício 
+   da localidade espacial sem sofrer excessivamente com conflitos de mapeamento.
+
+3. A localidade espacial do conjunto de dados é relativamente baixa, favorecendo 
+   blocos menores que permitem maior flexibilidade de mapeamento.
+
+4. O declínio acentuado após 32 bytes mostra que os conflitos de mapeamento 
+   superam os benefícios da localidade espacial para este padrão específico de acesso.
+
+COMANDOS UTILIZADOS PARA EXECUTAR OS EXPERIMENTOS:
+===================================================
+
+Os seguintes comandos foram executados no terminal para gerar os resultados:
+
+1. Bloco de 8 bytes (1024 linhas):
+echo "0`n8`n1024`n2`n5`n0`n70`n70`n1`nExperimento2/resultado_exp2_bloco_8bytes_1024linhas.txt" | .\simulador_cache.exe
+
+2. Bloco de 16 bytes (512 linhas):
+echo "0`n16`n512`n2`n5`n0`n70`n70`n1`nExperimento2/resultado_exp2_bloco_16bytes_512linhas.txt" | .\simulador_cache.exe
+
+3. Bloco de 32 bytes (256 linhas):
+echo "0`n32`n256`n2`n5`n0`n70`n70`n1`nExperimento2/resultado_exp2_bloco_32bytes_256linhas.txt" | .\simulador_cache.exe
+
+4. Bloco de 64 bytes (128 linhas):
+echo "0`n64`n128`n2`n5`n0`n70`n70`n1`nExperimento2/resultado_exp2_bloco_64bytes_128linhas.txt" | .\simulador_cache.exe
+
+5. Bloco de 128 bytes (64 linhas):
+echo "0`n128`n64`n2`n5`n0`n70`n70`n1`nExperimento2/resultado_exp2_bloco_128bytes_64linhas.txt" | .\simulador_cache.exe
+
+6. Bloco de 256 bytes (32 linhas):
+echo "0`n256`n32`n2`n5`n0`n70`n70`n1`nExperimento2/resultado_exp2_bloco_256bytes_32linhas.txt" | .\simulador_cache.exe
+
+7. Bloco de 512 bytes (16 linhas):
+echo "0`n512`n16`n2`n5`n0`n70`n70`n1`nExperimento2/resultado_exp2_bloco_512bytes_16linhas.txt" | .\simulador_cache.exe
+
+8. Bloco de 1024 bytes (8 linhas):
+echo "0`n1024`n8`n2`n5`n0`n70`n70`n1`nExperimento2/resultado_exp2_bloco_1024bytes_8linhas.txt" | .\simulador_cache.exe
+
+9. Bloco de 2048 bytes (4 linhas):
+echo "0`n2048`n4`n2`n5`n0`n70`n70`n1`nExperimento2/resultado_exp2_bloco_2048bytes_4linhas.txt" | .\simulador_cache.exe
+
+10. Bloco de 4096 bytes (2 linhas):
+echo "0`n4096`n2`n2`n5`n0`n70`n70`n1`nExperimento2/resultado_exp2_bloco_4096bytes_2linhas.txt" | .\simulador_cache.exe
+
+PARÂMETROS DOS COMANDOS:
+========================
+- 0: Política de escrita Write-through
+- Tamanho do bloco: variando de 8 a 4096 bytes (potências de 2)
+- Número de linhas: calculado para manter cache de 8KB total
+- 2: Associatividade de 2 blocos por conjunto
+- 5: Hit time de 5 ns
+- 0: Política de substituição LRU
+- 70: Tempo de leitura da MP (70 ns)
+- 70: Tempo de escrita da MP (70 ns)
+- 1: Arquivo oficial de entrada
+- Caminho do arquivo de saída específico para cada experimento

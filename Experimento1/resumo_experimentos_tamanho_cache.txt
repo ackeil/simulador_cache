@@ -1,0 +1,72 @@
+ANÁLISE DO IMPACTO DO TAMANHO DA CACHE
+========================================
+
+CONFIGURAÇÃO DOS EXPERIMENTOS:
+- Tamanho do bloco: 128 bytes
+- Política de escrita: Write-through
+- Associatividade: 4 blocos por conjunto
+- Hit time: 5 ns
+- Tempo de leitura/escrita MP: 70 ns
+- Política de substituição: LRU
+- Arquivo de entrada: oficial.cache
+
+RESULTADOS DOS EXPERIMENTOS:
+=============================
+
+| Número de | Tamanho da | Taxa de    | Tempo Médio | Total de Acessos |
+| Blocos    | Cache (B)  | Acerto (%) | Acesso (ns) | à MP             |
+|-----------|------------|------------|-------------|------------------|
+| 8         | 1.024      | 51,00      | 39,30       | 31.232           |
+| 16        | 2.048      | 54,00      | 37,20       | 29.696           |
+| 32        | 4.096      | 65,98      | 28,81       | 23.562           |
+| 64        | 8.192      | 92,93      | 9,95        | 9.765            |
+| 128       | 16.384     | 94,92      | 8,55        | 8.743            |
+| 256       | 32.768     | 99,91      | 5,06        | 6.188            |
+| 512       | 65.536     | 99,91      | 5,06        | 6.188            |
+| 1024      | 131.072    | 99,91      | 5,06        | 6.188            |
+
+OBSERVAÇÕES IMPORTANTES:
+========================
+
+1. PONTO DE SATURAÇÃO: 
+   A taxa de acerto se torna insensível ao tamanho da cache a partir de 256 blocos (32.768 bytes).
+   Os resultados são idênticos para 256, 512 e 1024 blocos.
+
+2. MAIOR GANHO DE PERFORMANCE:
+   O maior salto na taxa de acerto ocorre entre 32 e 64 blocos (de 65,98% para 92,93%).
+
+3. DIMINUIÇÃO DOS ACESSOS À MP:
+   - Com 8 blocos: 31.232 acessos à MP
+   - Com 256+ blocos: 6.188 acessos à MP (redução de ~80%)
+
+4. TEMPO MÉDIO DE ACESSO:
+   - Com 8 blocos: 39,30 ns
+   - Com 256+ blocos: 5,06 ns (redução de ~87%)
+
+5. EFICIÊNCIA DE CUSTO-BENEFÍCIO:
+   - O ponto ótimo parece estar em torno de 256 blocos (32.768 bytes)
+   - Aumentar além disso não traz benefícios adicionais para este conjunto de dados
+
+CONCLUSÃO:
+==========
+Para este conjunto de dados específico, uma cache de 32.768 bytes (256 blocos de 128 bytes) 
+é suficiente para atingir a performance máxima. Caches maiores não oferecem melhorias 
+adicionais, representando desperdício de recursos.
+
+
+cd "c:\Users\gabri\PDocumentos\UCS\UCS-Fundamentos ARQ\simulador_cache"; echo "0`n128`n8`n4`n5`n0`n70`n70`n1`nresultado_exp_tamanho_8blocos_1024bytes.txt" | .\simulador_cache.exe
+
+cd "c:\Users\gabri\PDocumentos\UCS\UCS-Fundamentos ARQ\simulador_cache"; echo "0`n128`n16`n4`n5`n0`n70`n70`n1`nresultado_exp_tamanho_16blocos_2048bytes.txt" | .\simulador_cache.exe
+
+cd "c:\Users\gabri\PDocumentos\UCS\UCS-Fundamentos ARQ\simulador_cache"; echo "0`n128`n32`n4`n5`n0`n70`n70`n1`nresultado_exp_tamanho_32blocos_4096bytes.txt" | .\simulador_cache.exe
+
+cd "c:\Users\gabri\PDocumentos\UCS\UCS-Fundamentos ARQ\simulador_cache"; echo "0`n128`n64`n4`n5`n0`n70`n70`n1`nresultado_exp_tamanho_64blocos_8192bytes.txt" | .\simulador_cache.exe
+
+cd "c:\Users\gabri\PDocumentos\UCS\UCS-Fundamentos ARQ\simulador_cache"; echo "0`n128`n128`n4`n5`n0`n70`n70`n1`nresultado_exp_tamanho_128blocos_16384bytes.txt" | .\simulador_cache.ex
+
+cd "c:\Users\gabri\PDocumentos\UCS\UCS-Fundamentos ARQ\simulador_cache"; echo "0`n128`n256`n4`n5`n0`n70`n70`n1`nresultado_exp_tamanho_256blocos_32768bytes.txt" | .\simulador_cache.exe
+
+cd "c:\Users\gabri\PDocumentos\UCS\UCS-Fundamentos ARQ\simulador_cache"; echo "0`n128`n512`n4`n5`n0`n70`n70`n1`nresultado_exp_tamanho_512blocos_65536bytes.txt" | .\simulador_cache.exe
+
+cd "c:\Users\gabri\PDocumentos\UCS\UCS-Fundamentos ARQ\simulador_cache"; echo "0`n128`n1024`n4`n5`n0`n70`n70`n1`nresultado_exp_tamanho_1024blocos_131072bytes.txt" | .\simulador_cache.exe
+

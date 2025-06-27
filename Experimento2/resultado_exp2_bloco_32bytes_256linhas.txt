@@ -1,0 +1,28 @@
+SIMULAÇÃO DE CACHE
+
+PARÂMETROS DE ENTRADA:
+Política de escrita: Write-Through
+Tamanho da linha: 32 bytes
+Número de linhas: 256
+Associatividade: 2
+Hit time: 5 ns
+Política de substituição: LRU
+Tempo de leitura MP: 70 ns
+Tempo de escrita MP: 70 ns
+
+TOTAL DE ENDEREÇOS NO ARQUIVO DE ENTRADA:
+Total de endereços: 51200
+Endereços de leitura: 45056
+Endereços de escrita: 6144
+
+TOTAL DE ACESSOS À MEMÓRIA PRINCIPAL:
+Leituras da MP: 5202
+Escritas na MP: 6144
+Total: 11346
+
+TAXA DE ACERTO (HIT RATE):
+Taxa de acerto global: 89.8398% (45998 hits)
+Taxa de acerto leitura: 90.7315% (40880 hits)
+Taxa de acerto escrita: 83.3008% (5118 hits)
+
+TEMPO MÉDIO DE ACESSO DA CACHE: 12.1121 ns

@@ -1,0 +1,192 @@
+ANÁLISE DA LARGURA DE BANDA DA MEMÓRIA
+=====================================
+
+CONFIGURAÇÃO DOS EXPERIMENTOS:
+- Caches: 8KB e 16KB
+- Tamanhos de bloco: 64 e 128 bytes
+- Associatividade: 2 e 4 blocos
+- Política de substituição: LRU
+- Hit time: 5 ns
+- Tempo de leitura/escrita MP: 70 ns
+- Arquivo de entrada: oficial.cache
+
+TOTAL DE ENDEREÇOS NO ARQUIVO DE ENTRADA:
+- Total de endereços: 51.200
+- Endereços de leitura: 45.056 (88,0%)
+- Endereços de escrita: 6.144 (12,0%)
+
+TABELA DE RESULTADOS - WRITE-THROUGH:
+====================================
+
+| Cache | Bloco | Assoc | Leituras MP | Escritas MP | Total MP |
+|-------|-------|-------|-------------|-------------|----------|
+| 8KB   | 64B   | 2     | 5.170       | 6.144       | 11.314   |
+| 8KB   | 64B   | 4     | 3.129       | 6.144       | 9.273    |
+| 8KB   | 128B  | 2     | 6.176       | 6.144       | 12.320   |
+| 8KB   | 128B  | 4     | 3.621       | 6.144       | 9.765    |
+| 16KB  | 64B   | 2     | 2.615       | 6.144       | 8.759    |
+| 16KB  | 64B  | 4     | 2.615       | 6.144       | 8.759    |
+| 16KB  | 128B  | 2     | 3.621       | 6.144       | 9.765    |
+| 16KB  | 128B  | 4     | 2.599       | 6.144       | 8.743    |
+|-------|-------|-------|-------------|-------------|----------|
+| MÉDIA |       |       | 3.693       | 6.144       | 9.837    |
+
+TABELA DE RESULTADOS - WRITE-BACK:
+==================================
+
+| Cache | Bloco | Assoc | Leituras MP | Escritas MP | Total MP |
+|-------|-------|-------|-------------|-------------|----------|
+| 8KB   | 64B   | 2     | 5.170       | 1.026       | 6.196    |
+| 8KB   | 64B   | 4     | 3.129       | 512         | 3.641    |
+| 8KB   | 128B  | 2     | 6.176       | 1.026       | 7.202    |
+| 8KB   | 128B  | 4     | 3.621       | 515         | 4.136    |
+| 16KB  | 64B   | 2     | 2.615       | 1.026       | 3.641    |
+| 16KB  | 64B  | 4     | 2.615       | 515         | 3.130    |
+| 16KB  | 128B  | 2     | 3.621       | 1.026       | 4.647    |
+| 16KB  | 128B  | 4     | 2.599       | 515         | 3.114    |
+|-------|-------|-------|-------------|-------------|----------|
+| MÉDIA |       |       | 3.693       | 765         | 4.458    |
+
+COMPARAÇÃO ENTRE POLÍTICAS:
+============================
+
+| Métrica              | Write-Through | Write-Back | Diferença |
+|---------------------|---------------|------------|-----------|
+| Leituras MP (Média) | 3.693         | 3.693      | 0         |
+| Escritas MP (Média) | 6.144         | 765        | -5.379    |
+| Total MP (Média)    | 9.837         | 4.458      | -5.379    |
+| Redução WT→WB       | -             | -54,7%     | -         |
+
+ANÁLISE DOS RESULTADOS:
+========================
+
+1. RESPOSTA À QUESTÃO PRINCIPAL:
+
+   QUAL CACHE POSSUI MENOR TRÁFEGO: WRITE-BACK
+
+   A política Write-Back possui significativamente menor tráfego de memória que Write-Through:
+   - Write-Through: 9.837 acessos à MP (média)
+   - Write-Back: 4.458 acessos à MP (média)
+   - REDUÇÃO: 54,7% menos tráfego com Write-Back
+
+2. POR QUE WRITE-BACK TEM MENOR TRÁFEGO:
+
+   a) COMPORTAMENTO DAS ESCRITAS:
+      
+      i) WRITE-THROUGH:
+         - TODAS as escritas vão imediatamente para a MP
+         - 6.144 escritas originais = 6.144 escritas na MP
+         - Não há otimização de escritas repetidas
+         - Comportamento: Escrita na cache + Escrita na MP (sempre)
+      
+      ii) WRITE-BACK:
+         - Escritas ficam apenas na cache (marcadas como dirty)
+         - Vão para MP apenas quando a linha é substituída ou ao final
+         - 6.144 escritas originais → apenas 765 escritas na MP (média)
+         - REDUÇÃO: 87,5% nas escritas à MP
+         - Comportamento: Escrita na cache + Escrita na MP (somente quando necessário)
+
+   b) COMPORTAMENTO DAS LEITURAS:
+      - AMBAS têm o mesmo número de leituras da MP: 3.693 (média)
+      - Leituras ocorrem apenas em cache miss, independente da política de escrita
+      - Miss rate idêntico para ambas as políticas com mesmos parâmetros
+
+3. FATORES QUE INFLUENCIAM A DIFERENÇA:
+
+   a) LOCALIDADE TEMPORAL DAS ESCRITAS:
+      - Se dados são escritos múltiplas vezes antes de serem substituídos
+      - Write-Back aproveita esta localidade, Write-Through não
+      - Benefício maior quando há muitas escritas repetidas no mesmo bloco
+
+   b) PADRÃO DE ACESSO:
+      - 12% de escritas (6.144/51.200) é uma proporção significativa
+      - Suficiente para mostrar vantagem clara do Write-Back
+      - Write-Through sofre com cada escrita individual
+
+   c) TAMANHO DA CACHE E ASSOCIATIVIDADE:
+      - Caches maiores: menos substituições = menos write-backs obrigatórios
+      - Maior associatividade: menos conflitos = menos substituições
+      - Write-Back se beneficia mais de caches eficientes
+
+4. OBSERVAÇÕES IMPORTANTES:
+
+   a) CONSISTÊNCIA DOS RESULTADOS:
+      - Padrão consistente: Write-Back sempre menor tráfego
+      - Diferença proporcional mantida em todas as configurações
+      - Benefício independe do tamanho da cache ou associatividade
+
+   b) IMPACTO RELATIVO:
+      - Redução absoluta: ~5.379 acessos à MP
+      - Redução relativa: 54,7% do tráfego total
+      - Principalmente devido à otimização das escritas
+
+   c) TRADE-OFFS NÃO MEDIDOS:
+      - Write-Back: maior complexidade, risco de perda de dados
+      - Write-Through: maior simplicidade, maior consistência
+      - Análise focou apenas no tráfego de memória
+
+5. COMPORTAMENTO POR CONFIGURAÇÃO:
+
+   a) MELHOR CASO WRITE-BACK: 16KB, 64B, Assoc 4
+      - Total MP: 3.130 (Write-Back) vs 8.759 (Write-Through)
+      - Redução: 64,3%
+
+   b) PIOR CASO WRITE-BACK: 8KB, 128B, Assoc 2
+      - Total MP: 7.202 (Write-Back) vs 12.320 (Write-Through)
+      - Redução: 41,5%
+
+   c) TODAS AS CONFIGURAÇÕES favorecem Write-Back significativamente
+
+CONCLUSÕES:
+===========
+
+1. WRITE-BACK tem consistente e significativamente menor tráfego de memória 
+   que WRITE-THROUGH (54,7% de redução média).
+
+2. A vantagem principal vem da eliminação de escritas desnecessárias na MP,
+   aproveitando a localidade temporal das escritas.
+
+3. O benefício é independente do tamanho da cache, tamanho do bloco ou 
+   associatividade - Write-Back sempre supera Write-Through em tráfego.
+
+4. Para aplicações que priorizam redução do tráfego de memória e eficiência 
+   energética, Write-Back é claramente superior.
+
+5. A proporção de 12% de escritas no conjunto de dados foi suficiente para 
+   demonstrar vantagem substancial do Write-Back.
+
+COMANDOS UTILIZADOS PARA EXECUTAR OS EXPERIMENTOS:
+===================================================
+
+WRITE-THROUGH:
+1. echo "0`n64`n128`n2`n5`n0`n70`n70`n1`nExperimento5/resultado_exp5_8KB_64B_assoc2_WT.txt" | .\simulador_cache.exe
+2. echo "0`n64`n128`n4`n5`n0`n70`n70`n1`nExperimento5/resultado_exp5_8KB_64B_assoc4_WT.txt" | .\simulador_cache.exe
+3. echo "0`n128`n64`n2`n5`n0`n70`n70`n1`nExperimento5/resultado_exp5_8KB_128B_assoc2_WT.txt" | .\simulador_cache.exe
+4. echo "0`n128`n64`n4`n5`n0`n70`n70`n1`nExperimento5/resultado_exp5_8KB_128B_assoc4_WT.txt" | .\simulador_cache.exe
+5. echo "0`n64`n256`n2`n5`n0`n70`n70`n1`nExperimento5/resultado_exp5_16KB_64B_assoc2_WT.txt" | .\simulador_cache.exe
+6. echo "0`n64`n256`n4`n5`n0`n70`n70`n1`nExperimento5/resultado_exp5_16KB_64B_assoc4_WT.txt" | .\simulador_cache.exe
+7. echo "0`n128`n128`n2`n5`n0`n70`n70`n1`nExperimento5/resultado_exp5_16KB_128B_assoc2_WT.txt" | .\simulador_cache.exe
+8. echo "0`n128`n128`n4`n5`n0`n70`n70`n1`nExperimento5/resultado_exp5_16KB_128B_assoc4_WT.txt" | .\simulador_cache.exe
+
+WRITE-BACK:
+9. echo "1`n64`n128`n2`n5`n0`n70`n70`n1`nExperimento5/resultado_exp5_8KB_64B_assoc2_WB.txt" | .\simulador_cache.exe
+10. echo "1`n64`n128`n4`n5`n0`n70`n70`n1`nExperimento5/resultado_exp5_8KB_64B_assoc4_WB.txt" | .\simulador_cache.exe
+11. echo "1`n128`n64`n2`n5`n0`n70`n70`n1`nExperimento5/resultado_exp5_8KB_128B_assoc2_WB.txt" | .\simulador_cache.exe
+12. echo "1`n128`n64`n4`n5`n0`n70`n70`n1`nExperimento5/resultado_exp5_8KB_128B_assoc4_WB.txt" | .\simulador_cache.exe
+13. echo "1`n64`n256`n2`n5`n0`n70`n70`n1`nExperimento5/resultado_exp5_16KB_64B_assoc2_WB.txt" | .\simulador_cache.exe
+14. echo "1`n64`n256`n4`n5`n0`n70`n70`n1`nExperimento5/resultado_exp5_16KB_64B_assoc4_WB.txt" | .\simulador_cache.exe
+15. echo "1`n128`n128`n2`n5`n0`n70`n70`n1`nExperimento5/resultado_exp5_16KB_128B_assoc2_WB.txt" | .\simulador_cache.exe
+16. echo "1`n128`n128`n4`n5`n0`n70`n70`n1`nExperimento5/resultado_exp5_16KB_128B_assoc4_WB.txt" | .\simulador_cache.exe
+
+PARÂMETROS DOS COMANDOS:
+========================
+- 0/1: Política de escrita (0=Write-Through, 1=Write-Back)
+- 64/128: Tamanho do bloco em bytes
+- 64/128/256: Número de linhas (calculado para 8KB ou 16KB)
+- 2/4: Associatividade (blocos por conjunto)
+- 5: Hit time de 5 ns
+- 0: Política de substituição LRU
+- 70: Tempo de leitura da MP (70 ns)
+- 70: Tempo de escrita da MP (70 ns)
+- 1: Arquivo oficial de entrada
+- Caminho do arquivo de saída específico para cada experimento

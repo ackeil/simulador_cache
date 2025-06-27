@@ -1,0 +1,168 @@
+ANÁLISE DO IMPACTO DA ASSOCIATIVIDADE
+=====================================
+
+CONFIGURAÇÃO DOS EXPERIMENTOS:
+- Tamanho total da cache: 8KB (8192 bytes)
+- Tamanho do bloco: 128 bytes
+- Número total de linhas: 64
+- Política de escrita: Write-back
+- Hit time: 5 ns
+- Tempo de leitura/escrita MP: 70 ns
+- Política de substituição: LRU
+- Arquivo de entrada: oficial.cache
+
+RESULTADOS DOS EXPERIMENTOS:
+=============================
+
+| Associatividade | Número de | Taxa de    | Tempo Médio | Total de Acessos |
+|                 | Conjuntos | Acerto (%) | Acesso (ns) | à MP             |
+|-----------------|-----------|------------|-------------|------------------|
+| 1 (Direto)      | 64        | 74,96      | 22,53       | 14.870           |
+| 2               | 32        | 87,94      | 13,44       | 7.202            |
+| 4               | 16        | 92,93      | 9,95        | 4.136            |
+| 8               | 8         | 89,93      | 12,05       | 6.180            |
+| 16              | 4         | 99,91      | 5,06        | 48               |
+| 32              | 2         | 99,91      | 5,06        | 48               |
+| 64 (Total)      | 1         | 99,91      | 5,06        | 48               |
+
+ANÁLISE DOS RESULTADOS:
+========================
+
+1. FORMA DA CURVA - COMPORTAMENTO DA ASSOCIATIVIDADE:
+
+   A curva da taxa de acerto em função da associatividade possui uma forma característica:
+   
+   a) REGIÃO DE CRESCIMENTO ACENTUADO (1-4):
+      - Salto significativo: 74,96% → 92,93%
+      - Maior ganho de performance por incremento de associatividade
+      - Redução drástica de conflitos de mapeamento
+      - Diminuição expressiva dos acessos à MP: 14.870 → 4.136
+   
+   b) REGIÃO DE DECLÍNIO LEVE (4-8):
+      - Pequena queda: 92,93% → 89,93%
+      - Efeito de "thrashing" em conjuntos pequenos
+      - LRU pode não ser ideal para poucos conjuntos com alta associatividade
+   
+   c) REGIÃO DE SATURAÇÃO (16-64):
+      - Taxa de acerto estabiliza em 99,91%
+      - Tempo médio de acesso mínimo: 5,06 ns
+      - Acessos à MP mínimos: apenas 48
+      - Benefícios marginais praticamente nulos
+
+2. EXPLICAÇÃO DO COMPORTAMENTO DA CURVA:
+
+   a) MAPEAMENTO DIRETO (Associatividade = 1):
+      - ALTA INCIDÊNCIA DE CONFLITOS: Cada endereço mapeia para exatamente uma linha
+      - MISS RATE ELEVADO: 25,04% (alta taxa de miss)
+      - THRASHING: Dados competem pela mesma linha, causando substituições frequentes
+      - PADRÃO ESPECÍFICO: Este conjunto de dados tem muitos conflitos em mapeamento direto
+   
+   b) BAIXA ASSOCIATIVIDADE (2-4):
+      - REDUÇÃO SIGNIFICATIVA DE CONFLITOS: Mais opções por conjunto
+      - FLEXIBILIDADE CRESCENTE: Endereços podem mapear para 2-4 linhas
+      - MELHORIA DRAMÁTICA: Associatividade 2 já resolve muitos conflitos
+      - PONTO ÓTIMO LOCAL: Associatividade 4 oferece excelente custo-benefício
+   
+   c) ASSOCIATIVIDADE MÉDIA (8):
+      - COMPORTAMENTO ANÔMALO: Pequena degradação na performance
+      - EXPLICAÇÃO POSSÍVEL: 
+        * Poucos conjuntos (8) com muitas linhas por conjunto
+        * Padrão de acesso pode concentrar-se em poucos conjuntos
+        * LRU pode ser menos eficiente com alta associatividade em poucos conjuntos
+        * Overhead de gerenciamento pode superar benefícios
+   
+   d) ALTA ASSOCIATIVIDADE (16-64):
+      - SATURAÇÃO COMPLETA: Performance máxima atingida
+      - ELIMINAÇÃO DE CONFLITOS: Praticamente todos os conflitos resolvidos
+      - CUSTO-BENEFÍCIO QUESTIONÁVEL: Complexidade muito alta para ganho marginal
+      - APROXIMAÇÃO DA CACHE TOTALMENTE ASSOCIATIVA
+
+3. FATORES QUE INFLUENCIAM A FORMA DA CURVA:
+
+   a) PADRÃO DE ACESSO DOS DADOS:
+      - Localidade temporal e espacial específicas do conjunto de dados
+      - Distribuição dos endereços acessados
+      - Repetição de padrões de acesso
+   
+   b) POLÍTICA DE SUBSTITUIÇÃO:
+      - LRU funciona melhor com associatividade moderada
+      - Overhead de gerenciamento aumenta com associatividade
+   
+   c) TAMANHO DA CACHE E BLOCOS:
+      - 64 linhas totais limitam benefícios de alta associatividade
+      - Blocos de 128 bytes capturam boa localidade espacial
+   
+   d) NÚMERO DE CONJUNTOS:
+      - Poucos conjuntos (1-8) podem concentrar acessos
+      - Muitos conjuntos (32-64) distribuem melhor a carga
+
+4. PONTOS OTIMAIS IDENTIFICADOS:
+
+   a) CUSTO-BENEFÍCIO ÓTIMO: Associatividade 4
+      - Taxa de acerto: 92,93%
+      - Complexidade moderada
+      - Redução significativa de conflitos
+      - Tempo médio aceitável: 9,95 ns
+   
+   b) PERFORMANCE MÁXIMA: Associatividade 16+
+      - Taxa de acerto: 99,91%
+      - Tempo médio mínimo: 5,06 ns
+      - Complexidade muito alta
+      - Benefícios marginais além de 16
+
+CONCLUSÕES:
+===========
+
+1. A curva possui forma de "S" invertido com saturação, típica de sistemas com 
+   resolução progressiva de conflitos.
+
+2. O maior benefício ocorre na transição de mapeamento direto para baixa 
+   associatividade (1→4), onde conflitos são drasticamente reduzidos.
+
+3. A pequena degradação na associatividade 8 sugere que o padrão de acesso 
+   específico não se beneficia de poucos conjuntos com alta associatividade.
+
+4. A saturação em associatividade 16+ indica que este conjunto de dados tem 
+   padrão de localidade bem definido, não necessitando de cache totalmente associativa.
+
+5. Para aplicações práticas, associatividade 4 oferece o melhor custo-benefício, 
+   capturando 92,93% dos benefícios com complexidade moderada.
+
+COMANDOS UTILIZADOS PARA EXECUTAR OS EXPERIMENTOS:
+===================================================
+
+Os seguintes comandos foram executados no terminal para gerar os resultados:
+
+1. Associatividade 1 (Mapeamento Direto):
+echo "1`n128`n64`n1`n5`n0`n70`n70`n1`nExperimento3/resultado_exp3_assoc_1_64conjuntos.txt" | .\simulador_cache.exe
+
+2. Associatividade 2:
+echo "1`n128`n64`n2`n5`n0`n70`n70`n1`nExperimento3/resultado_exp3_assoc_2_32conjuntos.txt" | .\simulador_cache.exe
+
+3. Associatividade 4:
+echo "1`n128`n64`n4`n5`n0`n70`n70`n1`nExperimento3/resultado_exp3_assoc_4_16conjuntos.txt" | .\simulador_cache.exe
+
+4. Associatividade 8:
+echo "1`n128`n64`n8`n5`n0`n70`n70`n1`nExperimento3/resultado_exp3_assoc_8_8conjuntos.txt" | .\simulador_cache.exe
+
+5. Associatividade 16:
+echo "1`n128`n64`n16`n5`n0`n70`n70`n1`nExperimento3/resultado_exp3_assoc_16_4conjuntos.txt" | .\simulador_cache.exe
+
+6. Associatividade 32:
+echo "1`n128`n64`n32`n5`n0`n70`n70`n1`nExperimento3/resultado_exp3_assoc_32_2conjuntos.txt" | .\simulador_cache.exe
+
+7. Associatividade 64 (Totalmente Associativa):
+echo "1`n128`n64`n64`n5`n0`n70`n70`n1`nExperimento3/resultado_exp3_assoc_64_1conjunto.txt" | .\simulador_cache.exe
+
+PARÂMETROS DOS COMANDOS:
+========================
+- 1: Política de escrita Write-back
+- 128: Tamanho do bloco fixo em 128 bytes
+- 64: Número total de linhas fixo em 64
+- Associatividade: variando de 1 a 64 (potências de 2)
+- 5: Hit time de 5 ns
+- 0: Política de substituição LRU
+- 70: Tempo de leitura da MP (70 ns)
+- 70: Tempo de escrita da MP (70 ns)
+- 1: Arquivo oficial de entrada
+- Caminho do arquivo de saída específico para cada experimento

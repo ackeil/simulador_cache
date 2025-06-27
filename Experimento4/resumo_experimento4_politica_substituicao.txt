@@ -1,0 +1,197 @@
+ANÁLISE DO IMPACTO DA POLÍTICA DE SUBSTITUIÇÃO
+===============================================
+
+CONFIGURAÇÃO DOS EXPERIMENTOS:
+- Tamanho do bloco: 128 bytes
+- Política de escrita: Write-through
+- Associatividade: 4 blocos por conjunto
+- Hit time: 5 ns
+- Tempo de leitura/escrita MP: 70 ns
+- Arquivo de entrada: oficial.cache
+- Políticas comparadas: LRU vs Aleatória
+
+RESULTADOS DOS EXPERIMENTOS:
+=============================
+
+| Número de | Tamanho da | Taxa de Acerto (%) | Tempo Médio (ns) | Acessos à MP    |
+| Blocos    | Cache (B)  | LRU   | Aleatória  | LRU   | Alea.  | LRU   | Alea.  |
+|-----------|------------|-------|------------|-------|--------|-------|--------|
+| 16        | 2.048      | 54,00 | 54,79      | 37,20 | 36,65  | 29.696| 29.291 |
+| 32        | 4.096      | 65,98 | 72,59      | 28,81 | 24,19  | 23.562| 20.180 |
+| 64        | 8.192      | 92,93 | 94,70      | 9,95  | 8,71   | 9.765 | 8.857  |
+| 128       | 16.384     | 94,92 | 97,93      | 8,55  | 6,45   | 8.743 | 7.202  |
+| 256       | 32.768     | 99,91 | 99,91      | 5,06  | 5,06   | 6.188 | 6.188  |
+
+ANÁLISE DOS RESULTADOS:
+========================
+
+1. FORMA DAS CURVAS - COMPORTAMENTO COMPARATIVO:
+
+   Ambas as políticas apresentam curvas de crescimento exponencial que convergem para saturação:
+   
+   a) REGIÃO DE BAIXA PERFORMANCE (16-32 blocos):
+      - LRU: Crescimento gradual de 54,00% → 65,98%
+      - ALEATÓRIA: Crescimento mais acentuado de 54,79% → 72,59%
+      - DIFERENÇA: Aleatória supera LRU em 7-8% nesta região
+   
+   b) REGIÃO DE CRESCIMENTO ACELERADO (32-128 blocos):
+      - LRU: Salto significativo de 65,98% → 94,92%
+      - ALEATÓRIA: Crescimento constante de 72,59% → 97,93%
+      - DIFERENÇA: Aleatória mantém vantagem de 2-3%
+   
+   c) REGIÃO DE SATURAÇÃO (256+ blocos):
+      - AMBAS: Convergem para 99,91%
+      - DIFERENÇA: Nula - performance idêntica
+
+2. EXPLICAÇÃO DO COMPORTAMENTO DAS CURVAS:
+
+   a) POR QUE A POLÍTICA ALEATÓRIA SUPERA LRU EM CACHES PEQUENAS?
+   
+      i) OVERHEAD DO LRU:
+         - LRU requer manutenção de contadores de tempo para cada linha
+         - Em conjuntos pequenos (4 linhas), o overhead é proporcionalmente alto
+         - A decisão "inteligente" do LRU pode não compensar seu overhead
+      
+      ii) PADRÃO DE ACESSO ESPECÍFICO:
+         - Este conjunto de dados pode ter padrão que não favorece LRU
+         - Localidade temporal pode ser limitada ou irregular
+         - LRU pode estar substituindo linhas que serão acessadas novamente
+      
+      iii) BENEFÍCIO DA ALEATORIEDADE:
+         - Política aleatória distribui uniformemente as substituições
+         - Evita padrões sistemáticos de substituição que podem ser desfavoráveis
+         - Menor complexidade = menor overhead de execução
+   
+   b) POR QUE AS CURVAS CONVERGEM EM CACHES GRANDES?
+   
+      i) CAPACIDADE SUFICIENTE:
+         - Com 256 blocos (32KB), a cache é grande o suficiente para comportar
+           a maioria dos dados ativos do conjunto
+         - Poucas substituições são necessárias
+         - A política de substituição torna-se irrelevante
+      
+      ii) WORKING SET CAPTURADO:
+         - O working set do programa cabe completamente na cache
+         - Taxa de miss próxima de zero para ambas as políticas
+         - Diferenças entre políticas tornam-se marginais
+   
+   c) CARACTERÍSTICAS ESPECÍFICAS DAS POLÍTICAS:
+   
+      i) LRU (Least Recently Used):
+         VANTAGENS:
+         - Explora localidade temporal de forma ótima
+         - Previsível e determinística
+         - Teoricamente superior para padrões com localidade temporal forte
+         
+         DESVANTAGENS:
+         - Overhead de manutenção dos contadores
+         - Pode ter comportamento sub-ótimo em padrões específicos
+         - Complexidade de implementação
+      
+      ii) ALEATÓRIA (Random):
+         VANTAGENS:
+         - Simplicidade de implementação
+         - Baixo overhead computacional
+         - Evita padrões patológicos de substituição
+         - Comportamento estatisticamente uniforme
+         
+         DESVANTAGENS:
+         - Não explora localidade temporal
+         - Pode substituir dados recentemente usados
+         - Performance teoricamente inferior ao LRU
+
+3. FATORES QUE INFLUENCIAM O COMPORTAMENTO:
+
+   a) TAMANHO DO CONJUNTO:
+      - Associatividade 4 cria conjuntos pequenos
+      - Overhead do LRU é mais significativo em conjuntos pequenos
+      - Aleatoriedade é mais efetiva quando há poucas escolhas
+   
+   b) PADRÃO DE ACESSO DOS DADOS:
+      - Localidade temporal limitada no conjunto de dados
+      - Possível presença de acessos quasi-aleatórios
+      - LRU pode não conseguir prever padrões efetivamente
+   
+   c) DISTRIBUIÇÃO DE ENDEREÇOS:
+      - Distribuição uniforme favorece política aleatória
+      - Padrões concentrados favoreceriam LRU
+   
+   d) TAMANHO DA CACHE RELATIVO AO WORKING SET:
+      - Caches pequenas: política importa muito
+      - Caches grandes: política importa pouco
+
+4. PONTOS IMPORTANTES OBSERVADOS:
+
+   a) CROSSOVER POINT: Não há um ponto específico onde LRU supera Aleatória
+   b) MÁXIMA DIFERENÇA: ~3% em favor da Aleatória (128 blocos)
+   c) CONVERGÊNCIA: Ambas atingem 99,91% com 256 blocos
+   d) CONSISTÊNCIA: Aleatória é consistentemente melhor até a saturação
+
+CONCLUSÕES:
+===========
+
+1. CONTRA-INTUITIVO: A política aleatória supera LRU para este conjunto específico 
+   de dados, contradizendo a expectativa teórica usual.
+
+2. DEPENDÊNCIA DO CONTEXTO: A efetividade da política de substituição depende 
+   fortemente do padrão de acesso específico dos dados.
+
+3. OVERHEAD vs BENEFÍCIO: Em caches pequenas com baixa associatividade, o overhead 
+   do LRU pode superar seus benefícios teóricos.
+
+4. SATURAÇÃO UNIVERSAL: Para caches suficientemente grandes, a política de 
+   substituição torna-se irrelevante.
+
+5. IMPLICAÇÃO PRÁTICA: Para aplicações com padrões de acesso similares, política 
+   aleatória pode ser preferível pela simplicidade e performance.
+
+6. WORKING SET: O ponto de saturação (~32KB) indica o tamanho aproximado do 
+   working set para este conjunto de dados.
+
+COMANDOS UTILIZADOS PARA EXECUTAR OS EXPERIMENTOS:
+===================================================
+
+Os seguintes comandos foram executados no terminal para gerar os resultados:
+
+1. 16 blocos LRU:
+echo "0`n128`n16`n4`n5`n0`n70`n70`n1`nExperimento4/resultado_exp4_16blocos_2048bytes_LRU.txt" | .\simulador_cache.exe
+
+2. 16 blocos Aleatória:
+echo "0`n128`n16`n4`n5`n1`n70`n70`n1`nExperimento4/resultado_exp4_16blocos_2048bytes_Aleatoria.txt" | .\simulador_cache.exe
+
+3. 32 blocos LRU:
+echo "0`n128`n32`n4`n5`n0`n70`n70`n1`nExperimento4/resultado_exp4_32blocos_4096bytes_LRU.txt" | .\simulador_cache.exe
+
+4. 32 blocos Aleatória:
+echo "0`n128`n32`n4`n5`n1`n70`n70`n1`nExperimento4/resultado_exp4_32blocos_4096bytes_Aleatoria.txt" | .\simulador_cache.exe
+
+5. 64 blocos LRU:
+echo "0`n128`n64`n4`n5`n0`n70`n70`n1`nExperimento4/resultado_exp4_64blocos_8192bytes_LRU.txt" | .\simulador_cache.exe
+
+6. 64 blocos Aleatória:
+echo "0`n128`n64`n4`n5`n1`n70`n70`n1`nExperimento4/resultado_exp4_64blocos_8192bytes_Aleatoria.txt" | .\simulador_cache.exe
+
+7. 128 blocos LRU:
+echo "0`n128`n128`n4`n5`n0`n70`n70`n1`nExperimento4/resultado_exp4_128blocos_16384bytes_LRU.txt" | .\simulador_cache.exe
+
+8. 128 blocos Aleatória:
+echo "0`n128`n128`n4`n5`n1`n70`n70`n1`nExperimento4/resultado_exp4_128blocos_16384bytes_Aleatoria.txt" | .\simulador_cache.exe
+
+9. 256 blocos LRU:
+echo "0`n128`n256`n4`n5`n0`n70`n70`n1`nExperimento4/resultado_exp4_256blocos_32768bytes_LRU.txt" | .\simulador_cache.exe
+
+10. 256 blocos Aleatória:
+echo "0`n128`n256`n4`n5`n1`n70`n70`n1`nExperimento4/resultado_exp4_256blocos_32768bytes_Aleatoria.txt" | .\simulador_cache.exe
+
+PARÂMETROS DOS COMANDOS:
+========================
+- 0: Política de escrita Write-through
+- 128: Tamanho do bloco fixo em 128 bytes
+- Número de blocos: variando de 16 a 256 (potências de 2)
+- 4: Associatividade fixa em 4 blocos por conjunto
+- 5: Hit time de 5 ns
+- 0/1: Política de substituição (0=LRU, 1=Aleatória)
+- 70: Tempo de leitura da MP (70 ns)
+- 70: Tempo de escrita da MP (70 ns)
+- 1: Arquivo oficial de entrada
+- Caminho do arquivo de saída específico para cada experimento
