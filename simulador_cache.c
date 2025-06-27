@@ -187,10 +187,6 @@ void busca_conjunto_mp(int endereco)
 {
   int conjunto_atualizado;
 
-  printf("Buscando conjunto na memoria principal!\n");
-
-  printf("Index Ocupacao Cache: %d\n", informacoes_cache.index_ocupacao_cache);
-
   // Se a cache esta cheia, busca qual conjunto sera ocupado
   if(informacoes_cache.index_ocupacao_cache > informacoes_cache.numero_conjuntos)
   {
@@ -207,9 +203,6 @@ void busca_conjunto_mp(int endereco)
   else conjunto_atualizado = informacoes_cache.index_ocupacao_cache++;
 
   conjuntos_cache[conjunto_atualizado].index_conjunto = (endereco & informacoes_cache.mascara_conjuntos);
-
-  printf("Conjunto Atualizado: %i\n", conjunto_atualizado);
-  printf("Index Conjunto: %x\n", conjuntos_cache[conjunto_atualizado].index_conjunto);
 }
 
 void finaliza_write_back(void)
@@ -312,8 +305,8 @@ void trata_dados_entrada()
     // Tempo de escrita
     printf("Insira o tempo de escrita da Memoria Principal \n");
     printf("(Tempo em Nanossegundos) \n");
-    scanf("%i", &dados_entrada.tempo_mp_leitura);
-    if (dados_entrada.tempo_mp_leitura <= 0 || dados_entrada.tempo_mp_leitura > TAMANHO_INT)
+    scanf("%i", &dados_entrada.tempo_mp_escrita);
+    if (dados_entrada.tempo_mp_escrita <= 0 || dados_entrada.tempo_mp_escrita > TAMANHO_INT)
     {
         trata_erro(INPUT_INVALIDO);
     }
@@ -500,6 +493,7 @@ int main()
     // Le todos os dados do arquivo de entrada e printa
     while (fgets(dados_lidos, 11, arquivo_entrada) != NULL)
     {
+      
       if(sscanf(dados_lidos, "%x %c", &endereco, &operacao) == 2)
       {
         // printf("Endereco: %x\nOperacao: %c\n", endereco, operacao);
@@ -524,6 +518,8 @@ int main()
             {
               stats.total_escritas++;
               stats.hits_escrita++;
+
+              if(dados_entrada.politica_escrita == 1)conjuntos_cache[i].dirty_bit = 1;
             }
             if(operacao == 'R')
             {
@@ -543,16 +539,22 @@ int main()
             stats.total_escritas++;
             stats.escrita_mp++;
           }
-          if(operacao == 'R')
+
+          if(
+            (operacao == 'W' && dados_entrada.politica_escrita == 1) ||
+            (operacao == 'R')
+          )
           {
             stats.total_leituras++;
             stats.leitura_mp++;
+
+            busca_conjunto_mp(endereco);
           }
-          
-          busca_conjunto_mp(endereco);
         }
       }
     }
+    
+    finaliza_write_back();
   
     fclose(arquivo_entrada);
     cria_arquivo_saida();

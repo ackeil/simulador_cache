@@ -1,0 +1,25 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "cppvsdbg",
+      "request": "launch",
+      "name": "Debug Cache Simulator",
+      "program": "${workspaceFolder}/${input:selectExecutable}",
+      "stopAtEntry": true,
+      "preLaunchTask": "C/C++: gcc.exe build active file"
+    }
+  ],
+  "inputs": [
+    {
+      "id": "selectExecutable",
+      "type": "pickString",
+      "description": "Select the executable to debug",
+      "options": [
+        "simulador_cache.exe",
+        "simulador_cache_devcpp.exe",
+        "output/simulador_cache.exe"
+      ]
+    }
+  ]
+}
