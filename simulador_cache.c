@@ -454,39 +454,35 @@ void cria_arquivo_saida()
   // Miss penalty é o tempo de leitura da MP (buscar o dado)
   double tempo_medio = dados_entrada.hit_time + (miss_rate * dados_entrada.tempo_mp_leitura);
 
-  fprintf(arquivo_saida, "SIMULAÇÃO DE CACHE\n\n");
-  fprintf(arquivo_saida, "PARÂMETROS DE ENTRADA:\n");
-  fprintf(arquivo_saida, "Política de escrita: %s\n", dados_entrada.politica_escrita == 0 ? "Write-Through" : "Write-Back");
-  fprintf(arquivo_saida, "Tamanho da linha: %d bytes\n", dados_entrada.tamanho_linha);
-  fprintf(arquivo_saida, "Número de linhas: %d\n", dados_entrada.numero_linhas);
-  fprintf(arquivo_saida, "Associatividade: %d\n", dados_entrada.associatividade);
-  fprintf(arquivo_saida, "Hit time: %d ns\n", dados_entrada.hit_time);
-  fprintf(arquivo_saida, "Política de substituição: %s\n", dados_entrada.politica_subs == 0 ? "LRU" : "Aleatória");
-  fprintf(arquivo_saida, "Tempo de leitura MP: %d ns\n", dados_entrada.tempo_mp_leitura);
-  fprintf(arquivo_saida, "Tempo de escrita MP: %d ns\n\n", dados_entrada.tempo_mp_escrita);
+// Cabeçalho CSV
+fprintf(arquivo_saida, "politica_escrita,tamanho_linha,numero_linhas,associatividade,hit_time,politica_subs,tempo_mp_leitura,tempo_mp_escrita,total_acessos,total_leituras,total_escritas,leitura_mp,escrita_mp,total_mp,taxa_acerto_global,taxa_acerto_leitura,taxa_acerto_escrita,tempo_medio\n");
 
-  fprintf(arquivo_saida, "TOTAL DE ENDEREÇOS NO ARQUIVO DE ENTRADA:\n");
-  fprintf(arquivo_saida, "Total de endereços: %d\n", stats.total_acessos);
-  fprintf(arquivo_saida, "Endereços de leitura: %d\n", stats.total_leituras);
-  fprintf(arquivo_saida, "Endereços de escrita: %d\n\n", stats.total_escritas);
+// Dados CSV
+fprintf(arquivo_saida, "%s,%d,%d,%d,%d,%s,%d,%d,%d,%d,%d,%d,%d,%d,%.4f,%.4f,%.4f,%.4f\n",
+                dados_entrada.politica_escrita == 0 ? "Write-Through" : "Write-Back",
+                dados_entrada.tamanho_linha,
+                dados_entrada.numero_linhas,
+                dados_entrada.associatividade,
+                dados_entrada.hit_time,
+                dados_entrada.politica_subs == 0 ? "LRU" : "Aleatoria",
+                dados_entrada.tempo_mp_leitura,
+                dados_entrada.tempo_mp_escrita,
+                stats.total_acessos,
+                stats.total_leituras,
+                stats.total_escritas,
+                stats.leitura_mp,
+                stats.escrita_mp,
+                stats.leitura_mp + stats.escrita_mp,
+                taxa_acerto_global,
+                taxa_acerto_leitura,
+                taxa_acerto_escrita,
+                tempo_medio);
 
-  fprintf(arquivo_saida, "TOTAL DE ACESSOS À MEMÓRIA PRINCIPAL:\n");
-  fprintf(arquivo_saida, "Leituras da MP: %d\n", stats.leitura_mp);
-  fprintf(arquivo_saida, "Escritas na MP: %d\n", stats.escrita_mp);
-  fprintf(arquivo_saida, "Total: %d\n\n", stats.leitura_mp + stats.escrita_mp);
-
-  fprintf(arquivo_saida, "TAXA DE ACERTO (HIT RATE):\n");
-  fprintf(arquivo_saida, "Taxa de acerto global: %.4f%% (%d hits)\n", taxa_acerto_global, stats.hits_leitura + stats.hits_escrita);
-  fprintf(arquivo_saida, "Taxa de acerto leitura: %.4f%% (%d hits)\n", taxa_acerto_leitura, stats.hits_leitura);
-  fprintf(arquivo_saida, "Taxa de acerto escrita: %.4f%% (%d hits)\n\n", taxa_acerto_escrita, stats.hits_escrita);
-
-  fprintf(arquivo_saida, "TEMPO MÉDIO DE ACESSO DA CACHE: %.4f ns\n", tempo_medio);
-
-  // Saída no console também
-  printf("\nRESULTADOS DA SIMULAÇÃO:\n");
-  printf("Taxa de acerto global: %.4f%%\n", taxa_acerto_global);
-  printf("Tempo médio de acesso: %.4f ns\n", tempo_medio);
-  printf("Total de acessos à MP: %d\n", stats.leitura_mp + stats.escrita_mp);
+// Saída no console também
+printf("\nRESULTADOS DA SIMULAÇÃO (CSV):\n");
+printf("taxa_acerto_global: %.4f%%\n", taxa_acerto_global);
+printf("tempo_medio: %.4f ns\n", tempo_medio);
+printf("total_acessos_mp: %d\n", stats.leitura_mp + stats.escrita_mp);
 
   fclose(arquivo_saida);
   printf("\nArquivo de saída gerado com sucesso!\n");
