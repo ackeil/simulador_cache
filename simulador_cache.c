@@ -10,6 +10,12 @@
 #define INPUT_INVALIDO 1
 #define ARQUIVO_INVALIDO 2
 
+#define P_E_WB 1
+#define P_E_WT 0
+
+#define P_S_ALE 1
+#define P_S_LRU 0
+
 typedef struct str_dados_entrada
 {
   int politica_escrita;
@@ -23,26 +29,22 @@ typedef struct str_dados_entrada
   int arquivo_input;
 } str_dados_entrada;
 
-// ALTERAÇÃO: Estrutura da linha completamente reformulada
 typedef struct linha_cache
 {
-  int valid;                 // ALTERAÇÃO: Adicionado bit de validade
-  int tag;                   // ALTERAÇÃO: Adicionado tag
-  int dirty;                 // ALTERAÇÃO: Dirty bit movido para a linha
-  long long int lru_counter; // ALTERAÇÃO: Contador LRU individual por linha
+  int valid;                 
+  int tag;                   
+  int dirty;                 
+  long long int lru_counter; 
 } str_linha_cache;
 
-// ALTERAÇÃO: Simplificada estrutura do conjunto
 typedef struct conjunto_cache
 {
-  str_linha_cache *linhas; // ALTERAÇÃO: Array de linhas simplificado
+  str_linha_cache *linhas;
 } str_conjunto_cache;
 
 typedef struct informacoes_cache
 {
   int numero_conjuntos;
-  int mascara_conjuntos;
-  // ALTERAÇÃO: Removido index_ocupacao_cache (não necessário)
 
   struct
   {
@@ -50,6 +52,7 @@ typedef struct informacoes_cache
     int conjunto;
     int palavra;
   } endereco;
+
 } str_informacoes_cache;
 
 struct estatisticas
@@ -70,6 +73,13 @@ struct estatisticas
   int hit_rate_leituras;
   int hit_rate_escritas;
   int tempo_medio_cache;
+
+  double taxa_acerto_global;
+  double taxa_acerto_leitura;
+  double taxa_acerto_escrita;
+  double hit_rate;
+  double miss_rate;
+  double tempo_medio;
 } stats;
 
 long long int contador_lru;
@@ -100,7 +110,6 @@ void trata_erro(int erro)
   exit(erro);
 }
 
-// ALTERAÇÃO: Funções auxiliares para extrair campos do endereço
 int extrai_offset(int endereco)
 {
   return endereco & ((1 << informacoes_cache.endereco.palavra) - 1);
@@ -127,9 +136,6 @@ void inicializa_cache()
   informacoes_cache.endereco.conjunto = log2(informacoes_cache.numero_conjuntos);
   informacoes_cache.endereco.rotulo = TAMANHO_END - (informacoes_cache.endereco.palavra + informacoes_cache.endereco.conjunto);
 
-  // ALTERAÇÃO: Máscara corrigida (não é mais necessária com as novas funções)
-  informacoes_cache.mascara_conjuntos = (1 << informacoes_cache.endereco.conjunto) - 1;
-
   printf("Rotulo: %d\n", informacoes_cache.endereco.rotulo);
   printf("Conjunto: %d\n", informacoes_cache.endereco.conjunto);
   printf("Palavra: %d\n", informacoes_cache.endereco.palavra);
@@ -137,7 +143,6 @@ void inicializa_cache()
   // Aloca a quantidade de conjuntos da cache
   conjuntos_cache = (str_conjunto_cache *)malloc(informacoes_cache.numero_conjuntos * sizeof(str_conjunto_cache));
 
-  // ALTERAÇÃO: Inicialização corrigida dos conjuntos e linhas
   for (i = 0; i < informacoes_cache.numero_conjuntos; i++)
   {
     conjuntos_cache[i].linhas = (str_linha_cache *)malloc(dados_entrada.associatividade * sizeof(str_linha_cache));
@@ -145,10 +150,10 @@ void inicializa_cache()
     // Inicializa todas as linhas como inválidas
     for (j = 0; j < dados_entrada.associatividade; j++)
     {
-      conjuntos_cache[i].linhas[j].valid = 0;       // ALTERAÇÃO: Linha inválida
-      conjuntos_cache[i].linhas[j].tag = 0;         // ALTERAÇÃO: Tag zerado
-      conjuntos_cache[i].linhas[j].dirty = 0;       // ALTERAÇÃO: Não modificado
-      conjuntos_cache[i].linhas[j].lru_counter = 0; // ALTERAÇÃO: Contador LRU
+      conjuntos_cache[i].linhas[j].valid = 0;       // Linha inválida
+      conjuntos_cache[i].linhas[j].tag = 0;         // Tag zerado
+      conjuntos_cache[i].linhas[j].dirty = 0;       // Não modificado
+      conjuntos_cache[i].linhas[j].lru_counter = 0; // Contador LRU
     }
   }
 
@@ -173,7 +178,9 @@ void inicializa_cache()
   contador_lru = 0;
 }
 
-// ALTERAÇÃO: Função busca_lru completamente reescrita
+// Funcao de busca do LRU
+// Recebe o indice do conjunto, e considera o contador LRU da primeira linha
+// Passa por todas as linhas, e verifica qual linha possui o menor contador (linha mais antiga)
 int busca_linha_lru(int indice_conjunto)
 {
   int i, linha_lru = 0;
@@ -192,11 +199,12 @@ int busca_linha_lru(int indice_conjunto)
   return linha_lru;
 }
 
-// ALTERAÇÃO: Função busca_conjunto_mp removida - não é mais necessária
-
-// ALTERAÇÃO: Nova função para processar acesso à cache
+// Funcao para simular o acesso a cache
+// Recebe qual o endereco desejado e a operacao a ser realizada
+// Busca a tag e lida se for hit ou miss
 void processa_acesso_cache(int endereco, char operacao)
 {
+  // Busca a Tag e o indice do conjunto
   int tag = extrai_tag(endereco);
   int indice_conjunto = extrai_indice_conjunto(endereco);
   int i, hit = 0, linha_hit = -1;
@@ -204,6 +212,7 @@ void processa_acesso_cache(int endereco, char operacao)
   // Busca pela tag no conjunto correto
   for (i = 0; i < dados_entrada.associatividade; i++)
   {
+    // Se a linha for valida e a tag for identica, eh hit e salva a linha
     if (conjuntos_cache[indice_conjunto].linhas[i].valid &&
         conjuntos_cache[indice_conjunto].linhas[i].tag == tag)
     {
@@ -213,6 +222,7 @@ void processa_acesso_cache(int endereco, char operacao)
     }
   }
 
+  // Se for HIT, atualiuza o contador da LRU, e soma aos stats os valores referentes as operacoes
   if (hit)
   {
     // HIT - atualiza contador LRU
@@ -227,8 +237,8 @@ void processa_acesso_cache(int endereco, char operacao)
     {
       stats.hits_escrita++;
 
-      // ALTERAÇÃO: Marca como dirty se for write-back
-      if (dados_entrada.politica_escrita == 1)
+      // Marca como dirty se for write-back
+      if (dados_entrada.politica_escrita == P_E_WB)
       {
         conjuntos_cache[indice_conjunto].linhas[linha_hit].dirty = 1;
       }
@@ -247,7 +257,7 @@ void processa_acesso_cache(int endereco, char operacao)
     // Encontra linha para substituir
     int linha_substituir = -1;
 
-    // Primeiro, procura linha inválida
+    // Busca se ainda ha alguma linha que nao foi populada
     for (i = 0; i < dados_entrada.associatividade; i++)
     {
       if (!conjuntos_cache[indice_conjunto].linhas[i].valid)
@@ -257,14 +267,14 @@ void processa_acesso_cache(int endereco, char operacao)
       }
     }
 
-    // Se não há linha inválida, aplica política de substituição
+    // Se todas linhas estiverem populadas, aplica politica de substituicao
     if (linha_substituir == -1)
     {
-      if (dados_entrada.politica_subs == 0) // LRU
+      if (dados_entrada.politica_subs == P_S_LRU)
       {
         linha_substituir = busca_linha_lru(indice_conjunto);
       }
-      else // Aleatória
+      else
       {
         linha_substituir = rand() % dados_entrada.associatividade;
       }
@@ -286,11 +296,11 @@ void processa_acesso_cache(int endereco, char operacao)
     // Se é escrita
     if (operacao == 'W')
     {
-      if (dados_entrada.politica_escrita == 1) // Write-back
+      if (dados_entrada.politica_escrita == P_E_WB) // Write-back
       {
         conjuntos_cache[indice_conjunto].linhas[linha_substituir].dirty = 1;
       }
-      else // Write-through
+      else
       {
         stats.escrita_mp++;
       }
@@ -298,7 +308,7 @@ void processa_acesso_cache(int endereco, char operacao)
   }
 }
 
-// ALTERAÇÃO: Função finaliza_write_back reescrita
+// Ao finalizar a simulacao, busca se alguma linha ainda ficou com a flag DIRTY e soma statistica de escrita
 void finaliza_write_back(void)
 {
   int i, j;
@@ -345,7 +355,6 @@ void trata_dados_entrada()
   printf("Insira o tamanho da linha \n");
   printf("(Deve ser potencia de 2) \n");
   scanf("%i", &dados_entrada.tamanho_linha);
-  // ALTERAÇÃO: Correção na verificação de potência de 2
   if ((dados_entrada.tamanho_linha & (dados_entrada.tamanho_linha - 1)) != 0)
   {
     trata_erro(INPUT_INVALIDO);
@@ -355,7 +364,6 @@ void trata_dados_entrada()
   printf("Insira o numero de linhas \n");
   printf("(Deve ser potencia de 2) \n");
   scanf("%i", &dados_entrada.numero_linhas);
-  // ALTERAÇÃO: Correção na verificação de potência de 2
   if ((dados_entrada.numero_linhas & (dados_entrada.numero_linhas - 1)) != 0)
   {
     trata_erro(INPUT_INVALIDO);
@@ -425,10 +433,10 @@ void trata_dados_entrada()
   scanf("%s", caminho_saida);
 }
 
-// ALTERAÇÃO: Função cria_arquivo_saida com cálculos corrigidos
 void cria_arquivo_saida()
 {
   FILE *arquivo_saida;
+
   arquivo_saida = fopen(caminho_saida, "w+");
 
   if (arquivo_saida == NULL)
@@ -439,27 +447,23 @@ void cria_arquivo_saida()
 
   printf("Arquivo gerado em: %s\n", caminho_saida);
 
-  // ALTERAÇÃO: Cálculos de estatísticas corrigidos
-  double taxa_acerto_global = (double)(stats.hits_leitura + stats.hits_escrita) / stats.total_acessos * 100;
-  double taxa_acerto_leitura = (stats.total_leituras > 0) ? (double)stats.hits_leitura / stats.total_leituras * 100 : 0;
-  double taxa_acerto_escrita = (stats.total_escritas > 0) ? (double)stats.hits_escrita / stats.total_escritas * 100 : 0;
+  stats.taxa_acerto_global = (double)(stats.hits_leitura + stats.hits_escrita) / stats.total_acessos * 100;
+  stats.taxa_acerto_leitura = (stats.total_leituras > 0) ? (double)stats.hits_leitura / stats.total_leituras * 100 : 0;
+  stats.taxa_acerto_escrita = (stats.total_escritas > 0) ? (double)stats.hits_escrita / stats.total_escritas * 100 : 0;
 
-  // Cálculo do tempo médio simplificado baseado na fórmula padrão
   // Tempo médio = hit_time + miss_rate * miss_penalty
   // Para write-through, todas as escritas vão para MP, mas isso não afeta o tempo médio da cache
 
-  double hit_rate = (double)(stats.hits_leitura + stats.hits_escrita) / stats.total_acessos;
-  double miss_rate = 1.0 - hit_rate;
+  stats.hit_rate = (double)(stats.hits_leitura + stats.hits_escrita) / stats.total_acessos;
+  stats.miss_rate = 1.0 - stats.hit_rate;
+  stats.tempo_medio = dados_entrada.hit_time + (stats.miss_rate * dados_entrada.tempo_mp_leitura);
 
-  // Miss penalty é o tempo de leitura da MP (buscar o dado)
-  double tempo_medio = dados_entrada.hit_time + (miss_rate * dados_entrada.tempo_mp_leitura);
+  // Cabeçalho CSV
+  fprintf(arquivo_saida, "politica_escrita,tamanho_linha,numero_linhas,associatividade,hit_time,politica_subs,tempo_mp_leitura,tempo_mp_escrita,total_acessos,total_leituras,total_escritas,leitura_mp,escrita_mp,total_mp,taxa_acerto_global,taxa_acerto_leitura,taxa_acerto_escrita,tempo_medio\n");
 
-// Cabeçalho CSV
-fprintf(arquivo_saida, "politica_escrita,tamanho_linha,numero_linhas,associatividade,hit_time,politica_subs,tempo_mp_leitura,tempo_mp_escrita,total_acessos,total_leituras,total_escritas,leitura_mp,escrita_mp,total_mp,taxa_acerto_global,taxa_acerto_leitura,taxa_acerto_escrita,tempo_medio\n");
-
-// Dados CSV
-fprintf(arquivo_saida, "%s,%d,%d,%d,%d,%s,%d,%d,%d,%d,%d,%d,%d,%d,%.4f,%.4f,%.4f,%.4f\n",
-                dados_entrada.politica_escrita == 0 ? "Write-Through" : "Write-Back",
+  // Dados CSV
+  fprintf(arquivo_saida, "%s,%d,%d,%d,%d,%s,%d,%d,%d,%d,%d,%d,%d,%d,%.4f,%.4f,%.4f,%.4f\n",
+                dados_entrada.politica_escrita == P_E_WT ? "Write-Through" : "Write-Back",
                 dados_entrada.tamanho_linha,
                 dados_entrada.numero_linhas,
                 dados_entrada.associatividade,
@@ -473,16 +477,16 @@ fprintf(arquivo_saida, "%s,%d,%d,%d,%d,%s,%d,%d,%d,%d,%d,%d,%d,%d,%.4f,%.4f,%.4f
                 stats.leitura_mp,
                 stats.escrita_mp,
                 stats.leitura_mp + stats.escrita_mp,
-                taxa_acerto_global,
-                taxa_acerto_leitura,
-                taxa_acerto_escrita,
-                tempo_medio);
+                stats.taxa_acerto_global,
+                stats.taxa_acerto_leitura,
+                stats.taxa_acerto_escrita,
+                stats.tempo_medio);
 
-// Saída no console também
-printf("\nRESULTADOS DA SIMULAÇÃO (CSV):\n");
-printf("taxa_acerto_global: %.4f%%\n", taxa_acerto_global);
-printf("tempo_medio: %.4f ns\n", tempo_medio);
-printf("total_acessos_mp: %d\n", stats.leitura_mp + stats.escrita_mp);
+  // Saída no console
+  printf("\nRESULTADOS DA SIMULAÇÃO (CSV):\n");
+  printf("taxa_acerto_global: %.4f%%\n", stats.taxa_acerto_global);
+  printf("tempo_medio: %.4f ns\n", stats.tempo_medio);
+  printf("total_acessos_mp: %d\n", stats.leitura_mp + stats.escrita_mp);
 
   fclose(arquivo_saida);
   printf("\nArquivo de saída gerado com sucesso!\n");
@@ -492,7 +496,7 @@ int main()
 {
   FILE *arquivo_entrada;
   char dados_lidos[11], operacao;
-  int endereco;
+  int endereco, i;
 
   printf("--------------------------------------------------------------------------------------------------------------------\n");
   printf("|                                                                                                                  |\n");
@@ -524,9 +528,10 @@ int main()
 
   printf("Abriu arquivo com sucesso! Lendo dados...\n");
 
-  // ALTERAÇÃO: Loop principal completamente reescrito
+  // Busca as linhas do arquivo de entrada
   while (fgets(dados_lidos, 11, arquivo_entrada) != NULL)
   {
+    // Pega o endereco e operacao da linha e joga para as variaveis
     if (sscanf(dados_lidos, "%x %c", &endereco, &operacao) == 2)
     {
       stats.total_acessos++;
@@ -540,7 +545,6 @@ int main()
         stats.total_escritas++;
       }
 
-      // ALTERAÇÃO: Chama nova função para processar o acesso
       processa_acesso_cache(endereco, operacao);
     }
   }
@@ -552,13 +556,15 @@ int main()
   }
 
   fclose(arquivo_entrada);
+
   cria_arquivo_saida();
 
   // Libera memória
-  for (int i = 0; i < informacoes_cache.numero_conjuntos; i++)
+  for (i = 0; i < informacoes_cache.numero_conjuntos; i++)
   {
     free(conjuntos_cache[i].linhas);
   }
+
   free(conjuntos_cache);
 
   return 0;
