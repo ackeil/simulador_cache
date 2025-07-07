@@ -1,2 +1,2 @@
 politica_escrita,tamanho_linha,numero_linhas,associatividade,hit_time,politica_subs,tempo_mp_leitura,tempo_mp_escrita,total_acessos,total_leituras,total_escritas,leitura_mp,escrita_mp,total_mp,taxa_acerto_global,taxa_acerto_leitura,taxa_acerto_escrita,tempo_medio
-Write-Through,256,128,8,5,LRU,70,70,51200,45056,6144,34,6144,6178,99.9336,99.9334,99.9349,5.0465
+Write-Through,256,128,8,5,LRU,70,70,51200,45056,6144,34,6144,6178,9.9934,9.9933,9.9935,5.0465

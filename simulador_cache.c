@@ -456,9 +456,9 @@ void cria_arquivo_saida()
 
   printf("Arquivo gerado em: %s\n", caminho_saida);
 
-  stats.taxa_acerto_global = (double)(stats.hits_leitura + stats.hits_escrita) / stats.total_acessos * 100;
-  stats.taxa_acerto_leitura = (stats.total_leituras > 0) ? (double)stats.hits_leitura / stats.total_leituras * 100 : 0;
-  stats.taxa_acerto_escrita = (stats.total_escritas > 0) ? (double)stats.hits_escrita / stats.total_escritas * 100 : 0;
+  stats.taxa_acerto_global = (double)(stats.hits_leitura + stats.hits_escrita) / stats.total_acessos * 10;
+  stats.taxa_acerto_leitura = (stats.total_leituras > 0) ? (double)stats.hits_leitura / stats.total_leituras * 10 : 0;
+  stats.taxa_acerto_escrita = (stats.total_escritas > 0) ? (double)stats.hits_escrita / stats.total_escritas * 10 : 0;
 
   // Tempo médio = hit_time + miss_rate * miss_penalty
   // Para write-through, todas as escritas vão para MP, mas isso não afeta o tempo médio da cache
