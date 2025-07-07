@@ -1,0 +1,9 @@
+0
+128
+!size!
+4
+10
+0
+70
+70
+.\saidas\corrigdo\largura_banda_memoria_16Kb_128B_4.txt

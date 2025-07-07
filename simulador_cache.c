@@ -69,7 +69,6 @@ struct estatisticas
 
   int quant_enderecos;
   int acessos_mp;
-  int hit_rate;
   int hit_rate_leituras;
   int hit_rate_escritas;
   int tempo_medio_cache;
@@ -346,6 +345,7 @@ void trata_dados_entrada()
   printf("Insira a politica de escrita \n");
   printf("(0 - Write Thorugh, 1 - Write-Back) \n");
   scanf("%i", &dados_entrada.politica_escrita);
+  printf("Input: %i\n", dados_entrada.politica_escrita);
   if (dados_entrada.politica_escrita > 1 || dados_entrada.politica_escrita < 0)
   {
     trata_erro(INPUT_INVALIDO);
@@ -355,6 +355,7 @@ void trata_dados_entrada()
   printf("Insira o tamanho da linha \n");
   printf("(Deve ser potencia de 2) \n");
   scanf("%i", &dados_entrada.tamanho_linha);
+  printf("Input: %i\n", dados_entrada.tamanho_linha);
   if ((dados_entrada.tamanho_linha & (dados_entrada.tamanho_linha - 1)) != 0)
   {
     trata_erro(INPUT_INVALIDO);
@@ -364,6 +365,7 @@ void trata_dados_entrada()
   printf("Insira o numero de linhas \n");
   printf("(Deve ser potencia de 2) \n");
   scanf("%i", &dados_entrada.numero_linhas);
+  printf("Input: %i\n", dados_entrada.numero_linhas);
   if ((dados_entrada.numero_linhas & (dados_entrada.numero_linhas - 1)) != 0)
   {
     trata_erro(INPUT_INVALIDO);
@@ -373,6 +375,7 @@ void trata_dados_entrada()
   printf("Insira o numero de linhas por conjunto \n");
   printf("(Deve ser maior que 1 e menor que o total de linhas) \n");
   scanf("%i", &dados_entrada.associatividade);
+  printf("Input: %i\n", dados_entrada.associatividade);
   if (dados_entrada.associatividade < 1 || dados_entrada.associatividade > dados_entrada.numero_linhas)
   {
     trata_erro(INPUT_INVALIDO);
@@ -382,6 +385,7 @@ void trata_dados_entrada()
   printf("Insira o tempo de acesso da memoria \n");
   printf("(Tempo em Nanossegundos) \n");
   scanf("%i", &dados_entrada.hit_time);
+  printf("Input: %i\n", dados_entrada.hit_time);
   if (dados_entrada.hit_time <= 0 || dados_entrada.hit_time > TAMANHO_INT)
   {
     trata_erro(INPUT_INVALIDO);
@@ -391,6 +395,7 @@ void trata_dados_entrada()
   printf("Insira a politica de substituicao \n");
   printf("(0 - LRU, 1 - Aleatoria) \n");
   scanf("%i", &dados_entrada.politica_subs);
+  printf("Input: %i\n", dados_entrada.politica_subs);
   if (dados_entrada.politica_subs > 1 || dados_entrada.politica_subs < 0)
   {
     trata_erro(INPUT_INVALIDO);
@@ -405,6 +410,7 @@ void trata_dados_entrada()
   printf("Insira o tempo de leitura da Memoria Principal \n");
   printf("(Tempo em Nanossegundos) \n");
   scanf("%i", &dados_entrada.tempo_mp_leitura);
+  printf("Input: %i\n", dados_entrada.tempo_mp_leitura);
   if (dados_entrada.tempo_mp_leitura <= 0 || dados_entrada.tempo_mp_leitura > TAMANHO_INT)
   {
     trata_erro(INPUT_INVALIDO);
@@ -414,6 +420,7 @@ void trata_dados_entrada()
   printf("Insira o tempo de escrita da Memoria Principal \n");
   printf("(Tempo em Nanossegundos) \n");
   scanf("%i", &dados_entrada.tempo_mp_escrita);
+  printf("Input: %i\n", dados_entrada.tempo_mp_escrita);
   if (dados_entrada.tempo_mp_escrita <= 0 || dados_entrada.tempo_mp_escrita > TAMANHO_INT)
   {
     trata_erro(INPUT_INVALIDO);
@@ -428,9 +435,11 @@ void trata_dados_entrada()
   printf("Insira qual o arquivo de dados desejado: \n");
   printf("(0 - Teste, 1 - Oficial) \n");
   scanf("%i", &dados_entrada.arquivo_input);
+  printf("Input: %i\n", dados_entrada.arquivo_input);
 
   printf("Insira o caminho do arquivo de saida \n");
   scanf("%s", caminho_saida);
+  
 }
 
 void cria_arquivo_saida()
