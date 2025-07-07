@@ -13,7 +13,7 @@ if not exist ".\saidas\oficial" mkdir ".\saidas\oficial"
 
 REM Experiment 1: Impacto do Tamanho da Cache
 if not exist ".\saidas\oficial\impacto_tamanho_cache" mkdir ".\saidas\oficial\impacto_tamanho_cache"
-for %%i in (8 16 32 64 128) do (
+for %%i in (8 16 32 64 128 256 512 1024) do (
     (
         echo 0
         echo 128
@@ -32,7 +32,7 @@ for %%i in (8 16 32 64 128) do (
 
 REM Experiment 2: Impacto do Tamanho do Bloco
 if not exist ".\saidas\oficial\impacto_tamanho_bloco" mkdir ".\saidas\oficial\impacto_tamanho_bloco"
-for %%i in (8 16 32 64 128 256 512 1024 2048 4096) do (
+for %%i in (8 16 32 64 128 256 512 1024 2048 4096 8192 16384) do (
     (
         echo 0
         echo %%i
@@ -51,7 +51,7 @@ for %%i in (8 16 32 64 128 256 512 1024 2048 4096) do (
 
 REM Experiment 3: Impacto da Associatividade
 if not exist ".\saidas\oficial\impacto_associatividade" mkdir ".\saidas\oficial\impacto_associatividade"
-for %%i in (2 4 8 16 32 64) do (
+for %%i in (2 4 8 16 32 64 128 256 512 1024 2048) do (
     (
         echo 1
         echo 128
@@ -70,7 +70,7 @@ for %%i in (2 4 8 16 32 64) do (
 
 REM Experiment 4: Impacto da Política de Substituição
 if not exist ".\saidas\oficial\impacto_politica_substituicao" mkdir ".\saidas\oficial\impacto_politica_substituicao"
-for %%i in (16 32 64 128) do (
+for %%i in (16 32 64 128 256 512 1024 2048) do (
     for %%p in (0 1) do (
         (
             echo 0
